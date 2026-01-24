@@ -74,3 +74,10 @@ jobs:
           allowUpdates: true
           makeLatest: true
 
+      - name: Upload Keystore (Download this to lock keys!)
+        uses: actions/upload-artifact@v4
+        with:
+          name: permanent-debug-keystore
+          path: ~/.config/.android/debug.keystore
+
+
