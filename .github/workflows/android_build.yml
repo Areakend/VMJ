@@ -47,7 +47,13 @@ jobs:
 
       - name: Generate Signing Report (for Firebase SHAs)
         working-directory: android
-        run: ./gradlew signingReport
+        run: ./gradlew signingReport > report.txt
+
+      - name: Display SHAs clearly
+        run: |
+          echo "--- DEBUG KEYS DETECTED ---"
+          grep -A 3 "Variant: debug" android/report.txt || true
+          echo "---------------------------"
 
       - name: Build APK with Gradle
         working-directory: android
