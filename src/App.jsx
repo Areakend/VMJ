@@ -76,6 +76,7 @@ function App() {
   const [volume, setVolume] = useState(2); // 2, 4, 8, 12
   const [locationState, setLocationState] = useState(null);
   const [editingDrink, setEditingDrink] = useState(null);
+  const [notifPermission, setNotifPermission] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -98,34 +99,42 @@ function App() {
     if (!currentUser) return;
 
     const setupNotifications = async () => {
+      let currentPerm = 'granted';
       if (Capacitor.isNativePlatform()) {
         const { LocalNotifications } = await import('@capacitor/local-notifications');
-        try {
-          const permission = await LocalNotifications.requestPermissions();
-          if (permission.display !== 'granted') return;
-        } catch (e) {
-          console.warn("Notification permission error", e);
+        const status = await LocalNotifications.checkPermissions();
+        currentPerm = status.display;
+        setNotifPermission(currentPerm);
+
+        if (currentPerm === 'prompt') {
+          // We'll let the user click the banner to request
+        } else if (currentPerm === 'granted') {
+          // Already good
         }
+      } else {
+        setNotifPermission('granted'); // Web fallback
       }
 
-      const { subscribeToIncomingNotifications } = await import('./utils/storage');
-      return subscribeToIncomingNotifications(currentUser.uid, async (notif) => {
-        if (Capacitor.isNativePlatform()) {
-          const { LocalNotifications } = await import('@capacitor/local-notifications');
-          await LocalNotifications.schedule({
-            notifications: [
-              {
-                title: "Nouveau Jäger ! 🦌",
-                body: notif.message,
-                id: Math.floor(Math.random() * 10000),
-                schedule: { at: new Date(Date.now() + 100) }
-              }
-            ]
-          });
-        } else {
-          console.log("Social Notification:", notif.message);
-        }
-      });
+      if (currentPerm === 'granted') {
+        const { subscribeToIncomingNotifications } = await import('./utils/storage');
+        return subscribeToIncomingNotifications(currentUser.uid, async (notif) => {
+          if (Capacitor.isNativePlatform()) {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  title: "Nouveau Jäger ! 🦌",
+                  body: notif.message,
+                  id: Math.floor(Math.random() * 10000),
+                  schedule: { at: new Date(Date.now() + 100) }
+                }
+              ]
+            });
+          } else {
+            console.log("Social Notification:", notif.message);
+          }
+        });
+      }
     };
 
     let unsubscribe;
@@ -272,6 +281,18 @@ function App() {
           <Users size={18} /> Friends
         </button>
       </nav>
+
+      {notifPermission === 'prompt' && Capacitor.isNativePlatform() && (
+        <div style={{ background: '#fbb124', color: 'black', padding: '10px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer' }}
+          onClick={async () => {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            const res = await LocalNotifications.requestPermissions();
+            setNotifPermission(res.display);
+            if (res.display === 'granted') window.location.reload(); // Re-trigger listener
+          }}>
+          🔔 Activer les notifications sociales pour le Crew ? (Cliquez ici)
+        </div>
+      )}
 
       {view === 'friends' ? (
         <Friends />
