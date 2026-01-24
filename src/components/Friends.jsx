@@ -66,7 +66,7 @@ function FriendDetail({ friend, onClose }) {
                         {friend.username.charAt(0).toUpperCase()}
                     </div>
                     <h2 style={{ margin: 0, color: 'white', fontSize: '1.5rem' }}>{friend.username}</h2>
-                    <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '4px' }}>Membre du Crew</p>
+                    <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '4px' }}>Crew Member</p>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '2rem' }}>
@@ -80,7 +80,7 @@ function FriendDetail({ friend, onClose }) {
                     </div>
                     <div style={{ background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.1)' : 'rgba(255,255,255,0.03)', padding: '12px 4px', borderRadius: '16px', border: lastNightVolume > 0 ? '1px solid rgba(251, 177, 36, 0.2)' : '1px solid rgba(255,255,255,0.03)' }}>
                         <strong style={{ display: 'block', fontSize: '1.1rem', color: lastNightVolume > 0 ? '#fbb124' : 'white' }}>{lastNightVolume}cl</strong>
-                        <span style={{ fontSize: '0.6rem', color: '#888', textTransform: 'uppercase' }}>La nuit</span>
+                        <span style={{ fontSize: '0.6rem', color: '#888', textTransform: 'uppercase' }}>Last Night</span>
                     </div>
                 </div>
 
@@ -99,7 +99,7 @@ function FriendDetail({ friend, onClose }) {
                         transition: 'transform 0.2s'
                     }}
                 >
-                    Fermer
+                    Close
                 </button>
             </div>
         </div>
