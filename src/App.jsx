@@ -245,8 +245,29 @@ function App() {
   // Stats
   const totalDrinks = drinks.length;
   const totalVolumeCl = drinks.reduce((acc, curr) => acc + (curr.volume || 2), 0);
-  const currentYear = new Date().getFullYear();
-  const drinksThisYear = drinks.filter(d => new Date(d.timestamp).getFullYear() === currentYear).length;
+
+  // Last Night (Midday to Midday)
+  const getLastNightVolume = () => {
+    const now = new Date();
+    const middayToday = new Date(now);
+    middayToday.setHours(12, 0, 0, 0);
+
+    let start, end;
+    if (now.getHours() >= 12) {
+      start = middayToday.getTime();
+      end = middayToday.getTime() + (24 * 60 * 60 * 1000);
+    } else {
+      start = middayToday.getTime() - (24 * 60 * 60 * 1000);
+      end = middayToday.getTime();
+    }
+
+    return drinks
+      .filter(d => d.timestamp >= start && d.timestamp < end)
+      .reduce((acc, curr) => acc + (curr.volume || 2), 0);
+  };
+
+  const lastNightVolume = getLastNightVolume();
+
 
   return (
     <>
@@ -302,18 +323,22 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="stats">
+          <div className="stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             <div className="stat-item">
               <strong>{totalDrinks}</strong>
               <span>Total Shots</span>
             </div>
-            <div className="stat-item">
+            <div className="stat-item" style={{ borderLeft: '1px solid #333' }}>
               <strong>{(totalVolumeCl / 100).toFixed(2)}L</strong>
               <span>Volume</span>
             </div>
-            <div className="stat-item">
+            <div className="stat-item" style={{ borderLeft: '1px solid #333' }}>
               <strong>{(totalVolumeCl / 70).toFixed(1)}</strong>
               <span>Bottles</span>
+            </div>
+            <div className="stat-item" style={{ borderLeft: '1px solid #333', background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.1)' : 'transparent' }}>
+              <strong style={{ color: lastNightVolume > 0 ? '#fbb124' : 'inherit' }}>{lastNightVolume}cl</strong>
+              <span style={{ fontSize: '0.65rem' }}>Last Night</span>
             </div>
           </div>
 

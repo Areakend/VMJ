@@ -1,7 +1,121 @@
 import { useState, useEffect } from 'react';
-import { Search, UserPlus, Users, Check, X, Trash2 } from 'lucide-react';
-import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend } from '../utils/storage';
+import { Search, UserPlus, Users, Check, X, Trash2, Droplets, Beer, ChevronRight } from 'lucide-react';
+import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
+import { format } from 'date-fns';
+
+function FriendDetail({ friend, onClose }) {
+    const [drinks, setDrinks] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToDrinks(friend.uid, (data) => {
+            setDrinks(data);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [friend.uid]);
+
+    const totalVolumeCl = drinks.reduce((acc, curr) => acc + (curr.volume || 2), 0);
+
+    const getLastNightVolume = () => {
+        const now = new Date();
+        const middayToday = new Date(now);
+        middayToday.setHours(12, 0, 0, 0);
+
+        let start, end;
+        if (now.getHours() >= 12) {
+            start = middayToday.getTime();
+            end = middayToday.getTime() + (24 * 60 * 60 * 1000);
+        } else {
+            start = middayToday.getTime() - (24 * 60 * 60 * 1000);
+            end = middayToday.getTime();
+        }
+
+        return drinks
+            .filter(d => d.timestamp >= start && d.timestamp < end)
+            .reduce((acc, curr) => acc + (curr.volume || 2), 0);
+    };
+
+    const lastNightVolume = getLastNightVolume();
+
+    return (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', zIndex: 2000,
+            padding: '1rem'
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                        width: '40px', height: '40px',
+                        background: 'var(--jager-orange)', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'black', fontWeight: 'bold'
+                    }}>
+                        {friend.username.charAt(0).toUpperCase()}
+                    </div>
+                    <h2 style={{ margin: 0, color: 'white' }}>{friend.username}</h2>
+                </div>
+                <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#888', fontSize: '1.5rem' }}>&times;</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '2rem' }}>
+                <div style={{ background: '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
+                    <strong style={{ display: 'block', fontSize: '1.2rem', color: 'var(--jager-orange)' }}>{drinks.length}</strong>
+                    <span style={{ fontSize: '0.7rem', color: '#888' }}>Total Shots</span>
+                </div>
+                <div style={{ background: '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
+                    <strong style={{ display: 'block', fontSize: '1.2rem', color: 'white' }}>{(totalVolumeCl / 100).toFixed(1)}L</strong>
+                    <span style={{ fontSize: '0.7rem', color: '#888' }}>Volume</span>
+                </div>
+                <div style={{ background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.2)' : '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
+                    <strong style={{ display: 'block', fontSize: '1.2rem', color: lastNightVolume > 0 ? '#fbb124' : 'white' }}>{lastNightVolume}cl</strong>
+                    <span style={{ fontSize: '0.7rem', color: '#888' }}>Last Night</span>
+                </div>
+            </div>
+
+            <h4 style={{ color: '#888', marginBottom: '1rem' }}>Recent History</h4>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+                {loading ? (
+                    <p style={{ textAlign: 'center', color: '#666' }}>Loading drinks...</p>
+                ) : drinks.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>This friend is suspiciously sober...</p>
+                ) : (
+                    drinks.slice(0, 20).map(drink => (
+                        <div key={drink.id} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '12px', background: 'rgba(255,255,255,0.03)', marginBottom: '8px', borderRadius: '8px'
+                        }}>
+                            <div>
+                                <div style={{ fontSize: '0.9rem', color: '#eee' }}>{format(new Date(drink.timestamp), 'HH:mm')} <span style={{ color: '#666', fontSize: '0.75rem' }}>{format(new Date(drink.timestamp), 'dd MMM')}</span></div>
+                                <div style={{ fontSize: '0.7rem', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Droplets size={10} /> {drink.volume || 2}cl
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <button
+                onClick={onClose}
+                style={{
+                    marginTop: '1rem',
+                    padding: '15px',
+                    background: 'var(--jager-green)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                }}
+            >
+                Back to Crew
+            </button>
+        </div>
+    );
+}
 
 export default function Friends() {
     const { currentUser, userData } = useAuth();
@@ -11,6 +125,7 @@ export default function Friends() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+    const [selectedFriend, setSelectedFriend] = useState(null);
 
     useEffect(() => {
         if (currentUser) {
@@ -194,15 +309,19 @@ export default function Friends() {
 
                 <ul style={{ listStyle: 'none', padding: 0, marginTop: '1rem' }}>
                     {friends.map(friend => (
-                        <li key={friend.uid} style={{
-                            padding: '12px',
-                            background: '#222',
-                            marginBottom: '8px',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                        }}>
+                        <li key={friend.uid}
+                            onClick={() => setSelectedFriend(friend)}
+                            style={{
+                                padding: '12px',
+                                background: '#222',
+                                marginBottom: '8px',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                cursor: 'pointer'
+                            }}
+                        >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{
                                     width: '32px', height: '32px',
@@ -215,16 +334,29 @@ export default function Friends() {
                                 </div>
                                 <span>{friend.username}</span>
                             </div>
-                            <button
-                                onClick={() => handleRemoveFriend(friend.uid, friend.username)}
-                                style={{ background: 'transparent', border: 'none', color: '#444', cursor: 'pointer', padding: '4px' }}
-                            >
-                                <Trash2 size={18} color="#666" />
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveFriend(friend.uid, friend.username);
+                                    }}
+                                    style={{ background: 'transparent', border: 'none', color: '#444', cursor: 'pointer', padding: '4px' }}
+                                >
+                                    <Trash2 size={18} color="#666" />
+                                </button>
+                                <ChevronRight size={18} color="#444" />
+                            </div>
                         </li>
                     ))}
                 </ul>
             </div>
+
+            {selectedFriend && (
+                <FriendDetail
+                    friend={selectedFriend}
+                    onClose={() => setSelectedFriend(null)}
+                />
+            )}
         </div>
     );
 }
