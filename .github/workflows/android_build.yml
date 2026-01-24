@@ -24,6 +24,11 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Patch broken dependencies (Proguard fix)
+        run: |
+          find node_modules -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+
+
       - name: Build Web Assets
         run: npm run build
 
