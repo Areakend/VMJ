@@ -101,59 +101,118 @@ export const claimUsername = async (userId, username) => {
     }
 };
 
-// Add a friend by username
-export const addFriend = async (currentUserId, currentUsername, targetUsername) => {
+// Send a friend request
+export const sendFriendRequest = async (currentUserId, currentUsername, targetUsername) => {
     const normalizeTarget = targetUsername.toLowerCase().trim();
     const usernameRef = doc(db, "usernames", normalizeTarget);
 
     try {
-        console.log("Searching for friend:", normalizeTarget);
         let targetUid = null;
-        let finalUsername = targetUsername;
+        let finalTargetUsername = targetUsername;
 
-        // Try lookup in 'usernames' collection first (fastest)
         const usernameSnap = await getDoc(usernameRef);
-
         if (usernameSnap.exists()) {
             targetUid = usernameSnap.data().uid;
         } else {
-            // Backup: Search 'users' collection by 'usernameLower' field
-            console.log("Not found in 'usernames', trying backup search in 'users'...");
             const usersRef = collection(db, "users");
             const q = query(usersRef, where("usernameLower", "==", normalizeTarget));
             const querySnap = await getDocs(q);
-
             if (!querySnap.empty) {
                 targetUid = querySnap.docs[0].id;
-                finalUsername = querySnap.docs[0].data().username;
-                // Self-heal: Add the missing mapping back to 'usernames'
-                try {
-                    await setDoc(usernameRef, { uid: targetUid });
-                    console.log("Healed missing username mapping for:", normalizeTarget);
-                } catch (e) {
-                    console.warn("Failed to heal username mapping", e);
-                }
+                finalTargetUsername = querySnap.docs[0].data().username;
             }
         }
 
-        if (!targetUid) {
-            throw new Error("User not found");
-        }
+        if (!targetUid) throw new Error("User not found");
+        if (targetUid === currentUserId) throw new Error("You cannot add yourself");
 
-        if (targetUid === currentUserId) {
-            throw new Error("You cannot add yourself");
-        }
+        // Check if already friends
+        const friendSnap = await getDoc(doc(db, "users", currentUserId, "friends", targetUid));
+        if (friendSnap.exists()) throw new Error("Already friends");
 
-        // Add to my friends
-        await setDoc(doc(db, "users", currentUserId, "friends", targetUid), {
-            username: finalUsername,
-            uid: targetUid,
-            addedAt: Date.now()
+        // Send request to target's inbox
+        await setDoc(doc(db, "users", targetUid, "friendRequests", currentUserId), {
+            fromUid: currentUserId,
+            fromUsername: currentUsername,
+            timestamp: Date.now()
         });
 
         return true;
     } catch (e) {
-        console.error("Error in addFriend:", e);
+        console.error("Error sending friend request:", e);
+        throw e;
+    }
+};
+
+// Subscribe to incoming friend requests
+export const subscribeToRequests = (userId, callback) => {
+    const q = collection(db, "users", userId, "friendRequests");
+    return onSnapshot(q, (snapshot) => {
+        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(requests);
+    });
+};
+
+// Accept friend request
+export const acceptFriendRequest = async (currentUserId, currentUsername, request) => {
+    const senderRef = doc(db, "users", request.fromUid);
+    const currentUserRef = doc(db, "users", currentUserId);
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const senderSnap = await transaction.get(senderRef);
+            if (!senderSnap.exists()) throw new Error("Sender no longer exists");
+
+            const senderData = senderSnap.data();
+
+            // 1. Add sender to my friends
+            transaction.set(doc(db, "users", currentUserId, "friends", request.fromUid), {
+                uid: request.fromUid,
+                username: request.fromUsername,
+                addedAt: Date.now()
+            });
+
+            // 2. Add me to sender's friends
+            transaction.set(doc(db, "users", request.fromUid, "friends", currentUserId), {
+                uid: currentUserId,
+                username: currentUsername,
+                addedAt: Date.now()
+            });
+
+            // 3. Delete the request
+            transaction.delete(doc(db, "users", currentUserId, "friendRequests", request.fromUid));
+        });
+        return true;
+    } catch (e) {
+        console.error("Error accepting friend request:", e);
+        throw e;
+    }
+};
+
+// Decline friend request
+export const declineFriendRequest = async (currentUserId, senderUid) => {
+    try {
+        await deleteDoc(doc(db, "users", currentUserId, "friendRequests", senderUid));
+        return true;
+    } catch (e) {
+        console.error("Error declining friend request:", e);
+        throw e;
+    }
+};
+
+// Remove a friend
+export const removeFriend = async (currentUserId, friendUid) => {
+    const myFriendRef = doc(db, "users", currentUserId, "friends", friendUid);
+    const theirFriendRef = doc(db, "users", friendUid, "friends", currentUserId);
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            transaction.delete(myFriendRef);
+            transaction.delete(theirFriendRef);
+        });
+        return true;
+    } catch (e) {
+        console.error("Error removing friend:", e);
         throw e;
     }
 };
