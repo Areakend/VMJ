@@ -24,9 +24,10 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Patch broken dependencies (Proguard fix)
+      - name: Patch broken dependencies (Proguard & JCenter fix)
         run: |
           find node_modules -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+          find node_modules -name "build.gradle" -exec sed -i 's/jcenter()/mavenCentral()/g' {} +
 
 
       - name: Build Web Assets
