@@ -17,14 +17,56 @@ import {
 // Helper to get collection ref
 const getDrinksCollection = (userId) => collection(db, "users", userId, "drinks");
 
-export const addDrink = async (userId, drinkData) => {
+export const addDrink = async (userId, drinkData, currentUsername = "Un ami") => {
     try {
         const docRef = await addDoc(getDrinksCollection(userId), drinkData);
+
+        // Background: Send notifications to friends
+        try {
+            const friendsSnap = await getDocs(collection(db, "users", userId, "friends"));
+            const friends = friendsSnap.docs.map(doc => doc.id);
+
+            if (friends.length > 0) {
+                const { getRandomJagerMessage } = await import("./notifications");
+                const message = getRandomJagerMessage();
+
+                const batchPromises = friends.map(friendId =>
+                    addDoc(collection(db, "users", friendId, "notifications"), {
+                        message: `${currentUsername}: ${message}`,
+                        drinkName: drinkData.name,
+                        timestamp: Date.now(),
+                        fromUid: userId
+                    })
+                );
+                await Promise.all(batchPromises);
+            }
+        } catch (err) {
+            console.warn("Failed to send social notifications:", err);
+        }
+
         return { id: docRef.id, ...drinkData };
     } catch (error) {
         console.error("Error adding drink: ", error);
         throw error;
     }
+};
+
+export const subscribeToIncomingNotifications = (userId, callback) => {
+    if (!userId) return () => { };
+    // Only listen to very recent notifications (within last minute or so) to avoid spam on load
+    const q = query(
+        collection(db, "users", userId, "notifications"),
+        where("timestamp", ">", Date.now() - 30000), // Last 30 seconds
+        orderBy("timestamp", "desc")
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+                callback(change.doc.data());
+            }
+        });
+    });
 };
 
 export const subscribeToDrinks = (userId, callback) => {

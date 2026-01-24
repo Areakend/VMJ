@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation } from './utils/location'
 import { useAuth } from './contexts/AuthContext'
+import { Capacitor } from '@capacitor/core'
 import Login from './components/Login'
 import UsernameSetup from './components/UsernameSetup'
 import Friends from './components/Friends'
@@ -93,6 +94,46 @@ function App() {
     }
   }, [currentUser]);
 
+  // Social Notification Listener
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const setupNotifications = async () => {
+      if (Capacitor.isNativePlatform()) {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        try {
+          const permission = await LocalNotifications.requestPermissions();
+          if (permission.display !== 'granted') return;
+        } catch (e) {
+          console.warn("Notification permission error", e);
+        }
+      }
+
+      const { subscribeToIncomingNotifications } = await import('./utils/storage');
+      return subscribeToIncomingNotifications(currentUser.uid, async (notif) => {
+        if (Capacitor.isNativePlatform()) {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                title: "Nouveau Jäger ! 🦌",
+                body: notif.message,
+                id: Math.floor(Math.random() * 10000),
+                schedule: { at: new Date(Date.now() + 100) }
+              }
+            ]
+          });
+        } else {
+          console.log("Social Notification:", notif.message);
+        }
+      });
+    };
+
+    let unsubscribe;
+    setupNotifications().then(unsub => unsubscribe = unsub);
+    return () => unsubscribe && unsubscribe();
+  }, [currentUser]);
+
   if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   if (!currentUser) return <Login />;
   if (!userData?.username) return <UsernameSetup />;
@@ -117,7 +158,7 @@ function App() {
         volume: volume
       };
 
-      await addDrink(currentUser.uid, newDrink);
+      await addDrink(currentUser.uid, newDrink, userData?.username || "Un ami");
 
     } catch (err) {
       console.error(err);
@@ -175,7 +216,7 @@ function App() {
                 volume: d.volume || 2,
                 importedAt: Date.now()
               };
-              await addDrink(currentUser.uid, dToSave);
+              await addDrink(currentUser.uid, dToSave, userData?.username || "Un ami");
               count++;
             }
             setLoading(false);
