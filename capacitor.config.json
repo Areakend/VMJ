@@ -1,5 +1,15 @@
 {
   "appId": "com.vitemonjager.app",
   "appName": "vitemonjager",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": [
+        "profile",
+        "email"
+      ],
+      "serverClientId": "626354913346-uvhlkjjiq2g1pjtss246qkhlrefcmskr.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
 }

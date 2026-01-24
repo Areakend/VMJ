@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "626354913346",
+    "project_id": "jager-tracking",
+    "storage_bucket": "jager-tracking.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:626354913346:android:ae5fa9a0429e4bac66eddb",
+        "android_client_info": {
+          "package_name": "com.vitemonjager.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "626354913346-fgl7uhcf2boaag0l5qeh4q8jgia1fcmu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vitemonjager.app",
+            "certificate_hash": "63d2c831b1092a4af3848ef1eb97d02d8e149e77"
+          }
+        },
+        {
+          "client_id": "626354913346-uvhlkjjiq2g1pjtss246qkhlrefcmskr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjGWiyqb-Z1rQX3QkwkW4-29voU8Ol12s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "626354913346-uvhlkjjiq2g1pjtss246qkhlrefcmskr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

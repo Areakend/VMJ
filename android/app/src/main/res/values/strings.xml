@@ -4,4 +4,5 @@
     <string name="title_activity_main">vitemonjager</string>
     <string name="package_name">com.vitemonjager.app</string>
     <string name="custom_url_scheme">com.vitemonjager.app</string>
+    <string name="server_client_id">626354913346-uvhlkjjiq2g1pjtss246qkhlrefcmskr.apps.googleusercontent.com</string>
 </resources>

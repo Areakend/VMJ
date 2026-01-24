@@ -103,33 +103,57 @@ export const claimUsername = async (userId, username) => {
 
 // Add a friend by username
 export const addFriend = async (currentUserId, currentUsername, targetUsername) => {
-    const normalizeTarget = targetUsername.toLowerCase();
+    const normalizeTarget = targetUsername.toLowerCase().trim();
     const usernameRef = doc(db, "usernames", normalizeTarget);
 
     try {
+        console.log("Searching for friend:", normalizeTarget);
+        let targetUid = null;
+        let finalUsername = targetUsername;
+
+        // Try lookup in 'usernames' collection first (fastest)
         const usernameSnap = await getDoc(usernameRef);
-        if (!usernameSnap.exists()) {
+
+        if (usernameSnap.exists()) {
+            targetUid = usernameSnap.data().uid;
+        } else {
+            // Backup: Search 'users' collection by 'usernameLower' field
+            console.log("Not found in 'usernames', trying backup search in 'users'...");
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("usernameLower", "==", normalizeTarget));
+            const querySnap = await getDocs(q);
+
+            if (!querySnap.empty) {
+                targetUid = querySnap.docs[0].id;
+                finalUsername = querySnap.docs[0].data().username;
+                // Self-heal: Add the missing mapping back to 'usernames'
+                try {
+                    await setDoc(usernameRef, { uid: targetUid });
+                    console.log("Healed missing username mapping for:", normalizeTarget);
+                } catch (e) {
+                    console.warn("Failed to heal username mapping", e);
+                }
+            }
+        }
+
+        if (!targetUid) {
             throw new Error("User not found");
         }
 
-        const targetUid = usernameSnap.data().uid;
         if (targetUid === currentUserId) {
             throw new Error("You cannot add yourself");
         }
 
         // Add to my friends
         await setDoc(doc(db, "users", currentUserId, "friends", targetUid), {
-            username: targetUsername, // We store valid case username? or we fetch it? 
-            // Better to fetch user profile, but for simplicity we assume targetUsername is correct casing if we found it?
-            // Actually the claimUsername stores exact casing in 'users' but lowercase in 'usernames'.
-            // Let's just store the UID and we can fetch details, or store the search term.
-            // Ideally we'd fetch the real casing from users/{uid}.
+            username: finalUsername,
             uid: targetUid,
             addedAt: Date.now()
         });
 
         return true;
     } catch (e) {
+        console.error("Error in addFriend:", e);
         throw e;
     }
 };
