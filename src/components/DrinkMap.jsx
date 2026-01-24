@@ -1,0 +1,98 @@
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { useEffect } from 'react';
+import { format } from 'date-fns';
+
+// Robust SVG Icon as Data URL - High Contrast Version
+const stagSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <!-- Background Pin -->
+    <circle cx="60" cy="60" r="54" fill="#1a1a1a" stroke="#fbbf24" stroke-width="4" />
+    
+    <!-- Stag Head (Centered and Scaled) -->
+    <g transform="translate(10, 10)">
+        <path d="M50 80 L42 60 Q42 52 50 52 Q58 52 58 60 L50 80" fill="#fbbf24" stroke="none" />
+        <path d="M44 58 Q30 48 22 58" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
+        <path d="M42 54 Q25 35 15 45" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
+        <path d="M40 50 Q20 25 10 35" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
+        <path d="M56 58 Q70 48 78 58" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
+        <path d="M58 54 Q75 35 85 45" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
+        <path d="M60 50 Q80 25 90 35" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
+        <path d="M50 42 V20 M42 30 H58" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+</svg>`;
+
+const iconUrl = `data:image/svg+xml;base64,${btoa(stagSvg)}`;
+
+const stagIcon = L.icon({
+    iconUrl: iconUrl,
+    iconSize: [50, 50],
+    iconAnchor: [25, 25],
+    popupAnchor: [0, -25]
+});
+
+function MapController({ center }) {
+    const map = useMap();
+    useEffect(() => {
+        // Force resize again just in case
+        setTimeout(() => map.invalidateSize(), 200);
+        if (center) {
+            map.flyTo(center, 13);
+        }
+    }, [center, map]);
+    return null;
+}
+
+export default function DrinkMap({ drinks, userLocation }) {
+    const defaultCenter = [48.8566, 2.3522];
+    let center = defaultCenter;
+    const lastDrink = drinks.find(d => d.latitude && d.longitude);
+
+    if (lastDrink) {
+        center = [lastDrink.latitude, lastDrink.longitude];
+    } else if (userLocation?.latitude) {
+        center = [userLocation.latitude, userLocation.longitude];
+    }
+
+    return (
+        <div style={{ height: '100%', width: '100%', minHeight: '400px', position: 'relative' }}>
+            <MapContainer
+                center={center}
+                zoom={13}
+                style={{ height: '100%', width: '100%', position: 'absolute', top: 0, left: 0 }}
+                scrollWheelZoom={true}
+            >
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+
+                <MapController center={center} />
+
+                {drinks.map(drink => (
+                    drink.latitude && drink.longitude ? (
+                        <Marker
+                            key={drink.id}
+                            position={[drink.latitude, drink.longitude]}
+                            icon={stagIcon}
+                        >
+                            <Popup>
+                                <strong>{format(new Date(drink.timestamp), 'dd MMM yyyy')}</strong><br />
+                                {format(new Date(drink.timestamp), 'HH:mm')}<br />
+                                {drink.volume || 2}cl
+                            </Popup>
+                        </Marker>
+                    ) : null
+                ))}
+            </MapContainer>
+        </div>
+    );
+}
