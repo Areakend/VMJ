@@ -42,78 +42,66 @@ function FriendDetail({ friend, onClose }) {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', zIndex: 2000,
-            padding: '1rem',
-            paddingTop: 'calc(env(safe-area-inset-top) + 2rem)'
+            background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+            padding: '1.5rem',
+            backdropFilter: 'blur(5px)'
         }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+                background: '#1c1c1c',
+                width: '100%', maxWidth: '340px',
+                borderRadius: '24px',
+                padding: '2rem',
+                border: '1px solid #333',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+                textAlign: 'center'
+            }}>
+                <div style={{ marginBottom: '1.5rem' }}>
                     <div style={{
-                        width: '40px', height: '40px',
-                        background: 'var(--jager-orange)', borderRadius: '50%',
+                        width: '64px', height: '64px',
+                        background: 'linear-gradient(135deg, var(--jager-orange), #d99a1f)',
+                        borderRadius: '50%', margin: '0 auto 12px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'black', fontWeight: 'bold'
+                        color: 'black', fontWeight: '800', fontSize: '1.4rem'
                     }}>
                         {friend.username.charAt(0).toUpperCase()}
                     </div>
-                    <h2 style={{ margin: 0, color: 'white' }}>{friend.username}</h2>
+                    <h2 style={{ margin: 0, color: 'white', fontSize: '1.5rem' }}>{friend.username}</h2>
+                    <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '4px' }}>Membre du Crew</p>
                 </div>
-                <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#888', fontSize: '1.5rem' }}>&times;</button>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '2rem' }}>
-                <div style={{ background: '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
-                    <strong style={{ display: 'block', fontSize: '1.2rem', color: 'var(--jager-orange)' }}>{drinks.length}</strong>
-                    <span style={{ fontSize: '0.7rem', color: '#888' }}>Total Shots</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '2rem' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px 4px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                        <strong style={{ display: 'block', fontSize: '1.1rem', color: 'var(--jager-orange)' }}>{drinks.length}</strong>
+                        <span style={{ fontSize: '0.6rem', color: '#888', textTransform: 'uppercase' }}>Shots</span>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px 4px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                        <strong style={{ display: 'block', fontSize: '1.1rem', color: 'white' }}>{(totalVolumeCl / 100).toFixed(1)}L</strong>
+                        <span style={{ fontSize: '0.6rem', color: '#888', textTransform: 'none' }}>{(totalVolumeCl / 70).toFixed(1)} btl</span>
+                    </div>
+                    <div style={{ background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.1)' : 'rgba(255,255,255,0.03)', padding: '12px 4px', borderRadius: '16px', border: lastNightVolume > 0 ? '1px solid rgba(251, 177, 36, 0.2)' : '1px solid rgba(255,255,255,0.03)' }}>
+                        <strong style={{ display: 'block', fontSize: '1.1rem', color: lastNightVolume > 0 ? '#fbb124' : 'white' }}>{lastNightVolume}cl</strong>
+                        <span style={{ fontSize: '0.6rem', color: '#888', textTransform: 'uppercase' }}>La nuit</span>
+                    </div>
                 </div>
-                <div style={{ background: '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
-                    <strong style={{ display: 'block', fontSize: '1.2rem', color: 'white' }}>{(totalVolumeCl / 100).toFixed(1)}L</strong>
-                    <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'none' }}>{(totalVolumeCl / 70).toFixed(1)} bottles</span>
-                </div>
-                <div style={{ background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.2)' : '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
-                    <strong style={{ display: 'block', fontSize: '1.2rem', color: lastNightVolume > 0 ? '#fbb124' : 'white' }}>{lastNightVolume}cl</strong>
-                    <span style={{ fontSize: '0.7rem', color: '#888' }}>Last Night</span>
-                </div>
-            </div>
 
-            <h4 style={{ color: '#888', marginBottom: '1rem' }}>Recent History</h4>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-                {loading ? (
-                    <p style={{ textAlign: 'center', color: '#666' }}>Loading drinks...</p>
-                ) : drinks.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>This friend is suspiciously sober...</p>
-                ) : (
-                    drinks.slice(0, 20).map(drink => (
-                        <div key={drink.id} style={{
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            padding: '12px', background: 'rgba(255,255,255,0.03)', marginBottom: '8px', borderRadius: '8px'
-                        }}>
-                            <div>
-                                <div style={{ fontSize: '0.9rem', color: '#eee' }}>{format(new Date(drink.timestamp), 'HH:mm')} <span style={{ color: '#666', fontSize: '0.75rem' }}>{format(new Date(drink.timestamp), 'dd MMM')}</span></div>
-                                <div style={{ fontSize: '0.7rem', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <Droplets size={10} /> {drink.volume || 2}cl
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
+                <button
+                    onClick={onClose}
+                    style={{
+                        width: '100%',
+                        padding: '14px',
+                        background: 'var(--jager-green)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '14px',
+                        fontWeight: 'bold',
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s'
+                    }}
+                >
+                    Fermer
+                </button>
             </div>
-
-            <button
-                onClick={onClose}
-                style={{
-                    marginTop: '1rem',
-                    padding: '15px',
-                    background: 'var(--jager-green)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                }}
-            >
-                Back to Crew
-            </button>
         </div>
     );
 }
