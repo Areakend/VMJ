@@ -45,6 +45,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Generate Signing Report (for Firebase SHAs)
+        working-directory: android
+        run: ./gradlew signingReport
+
       - name: Build APK with Gradle
         working-directory: android
         run: ./gradlew assembleDebug

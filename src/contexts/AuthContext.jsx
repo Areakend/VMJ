@@ -19,7 +19,9 @@ export function AuthProvider({ children }) {
     // Initialize Native Google Auth
     useEffect(() => {
         if (Capacitor.isNativePlatform()) {
-            GoogleAuth.initialize();
+            GoogleAuth.initialize({
+                clientId: '626354913346-uvhlkjjiq2g1pjtss246qkhlrefcmskr.apps.googleusercontent.com',
+            });
         }
     }, []);
 
