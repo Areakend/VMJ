@@ -27,6 +27,7 @@ body {
   width: 100%;
   max-width: 480px;
   padding: 1.5rem;
+  padding-top: calc(1.5rem + env(safe-area-inset-top));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

@@ -43,7 +43,8 @@ function FriendDetail({ friend, onClose }) {
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', zIndex: 2000,
-            padding: '1rem'
+            padding: '1rem',
+            paddingTop: 'calc(env(safe-area-inset-top) + 2rem)'
         }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
