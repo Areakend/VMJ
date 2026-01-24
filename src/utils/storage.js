@@ -27,14 +27,16 @@ export const addDrink = async (userId, drinkData, currentUsername = "Un ami") =>
             const friends = friendsSnap.docs.map(doc => doc.id);
 
             if (friends.length > 0) {
+                // Ensure timestamp is present for delivery
+                const now = Date.now();
                 const { getRandomJagerMessage } = await import("./notifications");
                 const message = getRandomJagerMessage();
 
                 const batchPromises = friends.map(friendId =>
                     addDoc(collection(db, "users", friendId, "notifications"), {
                         message: `${currentUsername}: ${message}`,
-                        drinkName: drinkData.name,
-                        timestamp: Date.now(),
+                        drinkName: drinkData.name || "Jäger",
+                        timestamp: now,
                         fromUid: userId
                     })
                 );
@@ -53,17 +55,24 @@ export const addDrink = async (userId, drinkData, currentUsername = "Un ami") =>
 
 export const subscribeToIncomingNotifications = (userId, callback) => {
     if (!userId) return () => { };
-    // Only listen to very recent notifications (within last minute or so) to avoid spam on load
+
+    // Simplify: Listen for ALL recent changes in the collection
+    // Complex filters (where + orderBy) often fail without manually created indexes in Firebase dashboard
     const q = query(
         collection(db, "users", userId, "notifications"),
-        where("timestamp", ">", Date.now() - 30000), // Last 30 seconds
         orderBy("timestamp", "desc")
     );
 
+    const startTime = Date.now();
+
     return onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
+            // Only process NEWLY added notifications that happened AFTER we started listening
             if (change.type === "added") {
-                callback(change.doc.data());
+                const data = change.doc.data();
+                if (data.timestamp > startTime - 5000) { // 5s grace period
+                    callback(data);
+                }
             }
         });
     });
