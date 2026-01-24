@@ -52,7 +52,7 @@ jobs:
       - name: Display SHAs clearly
         run: |
           echo "--- DEBUG KEYS DETECTED ---"
-          grep -A 3 "Variant: debug" android/report.txt || true
+          grep -A 15 "Variant: debug" android/report.txt || true
           echo "---------------------------"
 
       - name: Build APK with Gradle
