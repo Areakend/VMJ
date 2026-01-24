@@ -43,18 +43,17 @@ function EditModal({ drink, onClose, onSave }) {
 
         <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Volume (cl)</label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '2rem' }}>
-          {[2, 4, 8, 12, 70].map(v => (
+          {[2, 4, 8, 12].map(v => (
             <button
               key={v}
               onClick={() => setVolume(v)}
               style={{
                 background: volume === v ? '#fbb124' : '#333',
                 color: volume === v ? 'black' : '#888',
-                border: 'none', padding: '10px 0', borderRadius: '8px', fontWeight: 'bold',
-                gridColumn: v === 70 ? 'span 4' : 'auto'
+                border: 'none', padding: '10px 0', borderRadius: '8px', fontWeight: 'bold'
               }}
             >
-              {v === 70 ? 'Bottle (70cl)' : v}
+              {v}
             </button>
           ))}
         </div>
@@ -299,15 +298,14 @@ function App() {
 
           {/* Volume Selection */}
           <div className="volume-container">
-            {[2, 4, 8, 12, 70].map(v => (
+            {[2, 4, 8, 12].map(v => (
               <button
                 key={v}
                 onClick={() => setVolume(v)}
                 className={`volume-btn ${volume === v ? 'active' : ''}`}
-                style={v === 70 ? { gridColumn: 'span 4', background: volume === v ? '#064e3b' : 'rgba(255,255,255,0.05)' } : {}}
               >
-                <span>{v === 70 ? '1 Bottle' : `${v}cl`}</span>
-                <small>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : v === 12 ? 'Dead' : '70cl'}</small>
+                <span>{v}cl</span>
+                <small>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : 'Dead'}</small>
               </button>
             ))}
           </div>
