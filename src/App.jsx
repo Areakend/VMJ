@@ -323,18 +323,16 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             <div className="stat-item">
               <strong>{totalDrinks}</strong>
               <span>Total Shots</span>
             </div>
             <div className="stat-item" style={{ borderLeft: '1px solid #333' }}>
-              <strong>{(totalVolumeCl / 100).toFixed(2)}L</strong>
-              <span>Volume</span>
-            </div>
-            <div className="stat-item" style={{ borderLeft: '1px solid #333' }}>
-              <strong>{(totalVolumeCl / 70).toFixed(1)}</strong>
-              <span>Bottles</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <strong style={{ fontSize: '1.2rem' }}>{(totalVolumeCl / 100).toFixed(2)}L</strong>
+                <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'none' }}>{(totalVolumeCl / 70).toFixed(1)} bottles</span>
+              </div>
             </div>
             <div className="stat-item" style={{ borderLeft: '1px solid #333', background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.1)' : 'transparent' }}>
               <strong style={{ color: lastNightVolume > 0 ? '#fbb124' : 'inherit' }}>{lastNightVolume}cl</strong>

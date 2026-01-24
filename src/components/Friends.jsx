@@ -67,7 +67,7 @@ function FriendDetail({ friend, onClose }) {
                 </div>
                 <div style={{ background: '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
                     <strong style={{ display: 'block', fontSize: '1.2rem', color: 'white' }}>{(totalVolumeCl / 100).toFixed(1)}L</strong>
-                    <span style={{ fontSize: '0.7rem', color: '#888' }}>Volume</span>
+                    <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'none' }}>{(totalVolumeCl / 70).toFixed(1)} bottles</span>
                 </div>
                 <div style={{ background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.2)' : '#222', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
                     <strong style={{ display: 'block', fontSize: '1.2rem', color: lastNightVolume > 0 ? '#fbb124' : 'white' }}>{lastNightVolume}cl</strong>
