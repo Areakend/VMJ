@@ -42,23 +42,13 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Generate Debug Keystore
+      - name: Setup Permanent Keystore
         run: |
           mkdir -p ~/.config/.android
-          keytool -genkey -v -keystore ~/.config/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          cp android/debug.keystore ~/.config/.android/debug.keystore
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
-
-      - name: Generate Signing Report (for Firebase SHAs)
-        working-directory: android
-        run: ./gradlew signingReport > report.txt
-
-      - name: Display SHAs clearly
-        run: |
-          echo "--- DEBUG KEYS DETECTED ---"
-          grep -A 15 "Variant: debug" android/report.txt || true
-          echo "---------------------------"
 
       - name: Build APK with Gradle
         working-directory: android
@@ -74,10 +64,5 @@ jobs:
           allowUpdates: true
           makeLatest: true
 
-      - name: Upload Keystore (Download this to lock keys!)
-        uses: actions/upload-artifact@v4
-        with:
-          name: permanent-debug-keystore
-          path: ~/.config/.android/debug.keystore
 
 
