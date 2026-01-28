@@ -586,6 +586,20 @@ function App() {
             </div>
           </div>
 
+          {/* Action Button */}
+          <div className="main-action-area" style={{ marginBottom: '4rem' }}>
+            <button
+              className="drink-button"
+              onClick={handleDrink}
+              disabled={loading}
+              style={{ width: '210px', height: '210px', boxShadow: '0 0 40px rgba(251, 177, 36, 0.1)' }}
+            >
+              <Beer size={48} />
+              <span className="label" style={{ fontSize: '1.6rem' }}>{loading ? '...' : 'Cheers!'}</span>
+            </button>
+            {error && <div style={{ color: '#ef4444', marginTop: '15px', fontSize: '0.9rem' }}>{error}</div>}
+          </div>
+
           {/* Volume Selection */}
           <div className="volume-container">
             {[2, 4, 8, 12].map(v => (
@@ -598,6 +612,26 @@ function App() {
                 <small>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : 'Dead'}</small>
               </button>
             ))}
+          </div>
+
+          {/* Comment */}
+          <div style={{ padding: '0 15px', marginBottom: '3rem' }}>
+            <input
+              type="text"
+              value={drinkComment}
+              onChange={(e) => setDrinkComment(e.target.value)}
+              placeholder="A toast for..."
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                padding: '16px',
+                borderRadius: '16px',
+                color: 'white',
+                fontSize: '0.95rem',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            />
           </div>
 
           {/* Buddy Selection */}
@@ -637,38 +671,6 @@ function App() {
                 <span style={{ fontSize: '0.8rem', color: '#555', fontStyle: 'italic' }}>Add friends to tag them here!</span>
               )}
             </div>
-          </div>
-
-          <div style={{ padding: '0 15px', marginBottom: '3rem' }}>
-            <input
-              type="text"
-              value={drinkComment}
-              onChange={(e) => setDrinkComment(e.target.value)}
-              placeholder="A toast for..."
-              style={{
-                width: '100%',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                padding: '16px',
-                borderRadius: '16px',
-                color: 'white',
-                fontSize: '0.95rem',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-              }}
-            />
-          </div>
-
-          <div className="main-action-area" style={{ marginBottom: '4rem' }}>
-            <button
-              className="drink-button"
-              onClick={handleDrink}
-              disabled={loading}
-              style={{ width: '210px', height: '210px', boxShadow: '0 0 40px rgba(251, 177, 36, 0.1)' }}
-            >
-              <Beer size={48} />
-              <span className="label" style={{ fontSize: '1.6rem' }}>{loading ? '...' : 'Cheers!'}</span>
-            </button>
-            {error && <div style={{ color: '#ef4444', marginTop: '15px', fontSize: '0.9rem' }}>{error}</div>}
           </div>
 
           <div className="history-container">
