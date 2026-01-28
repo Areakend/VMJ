@@ -1,6 +1,8 @@
-# React + Vite
+# Jäger Tracker 🦌🥃
+**Current Version: v0.1-beta**  
+[Read the Changelog (Latest Patches)](CHANGELOG.md)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Jäger Tracker is a premium mobile application built with React and Capacitor to track your Jagermeister consumption across devices. 
 
 Currently, two official plugins are available:
 

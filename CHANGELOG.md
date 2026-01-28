@@ -1,0 +1,14 @@
+# Changelog - Jäger Tracker 🦌🥃
+
+## [0.1.0-beta] - 2026-01-28
+### ✨ Major Features
+- **Map Friend Locations**: You can now toggle visibility of your "Crew" members on the map and see their recent activity via markers.
+- **Background Push Notifications**: Using Firebase Cloud Messaging, you now receive alerts even when the app is closed.
+- **Language Standardization**: The entire app (UI, alerts, and 20+ funny notifications) has been translated to **English**.
+
+### 🛠️ Improvements & Fixes
+- **Security Patch**: Upgraded React to `19.2.1` to address the `CVE-2025-55182` vulnerability.
+- **Bottle Tracking**: Automated calculation of bottles consumed (0.7L equivalent).
+- **Edit Mode**: Added the ability to correct volume or time for previous shots.
+- **Native Android Polish**: Improved icon assets, splash screens, and safe area management for modern mobile displays.
+- **Reliable Auth**: Fixed Google Sign-In persistence and username claim logic.

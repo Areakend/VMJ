@@ -58,9 +58,20 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "android/app/build/outputs/apk/debug/app-debug.apk"
-          tag: "latest"
-          name: "Latest Jäger Tracker"
-          body: "Auto-generated build of the latest version. Cheers! 🍻"
+          tag: "v0.1-beta"
+          name: "Jäger Tracker v0.1-beta"
+          body: |
+            ## Beta 0.1 Release
+            All the latest patches are now live!
+            
+            ### ✨ Highlights
+            - **Map Friend Locations** (v0.1)
+            - **Background Push Notifications** (v0.1)
+            - **English Localization & Security Patches** (v0.1)
+            
+            [View Full Changelog](https://github.com/Areakend/VMJ/blob/main/CHANGELOG.md)
+            
+            Auto-generated build. Cheers! 🥂
           allowUpdates: true
           makeLatest: true
 

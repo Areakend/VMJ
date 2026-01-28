@@ -349,7 +349,10 @@ function App() {
       <header>
         <h1>Jäger Tracker</h1>
         <div className="user-profile">
-          <span className="user-name">{userData.username}</span>
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+            <span className="user-name">{userData.username}</span>
+            <span style={{ fontSize: '0.6rem', color: '#666' }}>v0.1 Beta</span>
+          </div>
           <button onClick={logout} className="logout-btn">
             <LogOut size={12} /> Logout
           </button>
