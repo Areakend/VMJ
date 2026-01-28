@@ -46,3 +46,38 @@ export const getCurrentLocation = async () => {
         });
     }
 };
+
+export const getAddressFromCoords = async (lat, lng) => {
+    if (!lat || !lng) return null;
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+            headers: { 'Accept-Language': 'en' }
+        });
+        const data = await response.json();
+        return data.display_name;
+    } catch (e) {
+        console.error("Reverse geocoding error:", e);
+        return null;
+    }
+};
+
+export const getCoordsFromAddress = async (address) => {
+    if (!address) return null;
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
+            headers: { 'Accept-Language': 'en' }
+        });
+        const data = await response.json();
+        if (data && data.length > 0) {
+            return {
+                latitude: parseFloat(data[0].lat),
+                longitude: parseFloat(data[0].lon),
+                displayName: data[0].display_name
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("Geocoding error:", e);
+        return null;
+    }
+};

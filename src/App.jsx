@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
-import { getCurrentLocation } from './utils/location'
+import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
 import { useAuth } from './contexts/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import Login from './components/Login'
@@ -17,8 +17,33 @@ function EditModal({ drink, onClose, onSave }) {
   const [volume, setVolume] = useState(drink.volume || 2);
   const [date, setDate] = useState(format(new Date(drink.timestamp), "yyyy-MM-dd'T'HH:mm"));
   const [comment, setComment] = useState(drink.comment || "");
+  const [address, setAddress] = useState(drink.locationName || "");
   const [lat, setLat] = useState(drink.latitude || "");
   const [lng, setLng] = useState(drink.longitude || "");
+  const [resolving, setResolving] = useState(false);
+
+  useEffect(() => {
+    if (!drink.locationName && drink.latitude && drink.longitude) {
+      getAddressFromCoords(drink.latitude, drink.longitude).then(addr => {
+        if (addr) setAddress(addr);
+      });
+    }
+  }, [drink]);
+
+  const handleLookup = async () => {
+    if (!address) return;
+    setResolving(true);
+    const coords = await getCoordsFromAddress(address);
+    if (coords) {
+      setLat(coords.latitude);
+      setLng(coords.longitude);
+      setAddress(coords.displayName);
+      alert("Location found!");
+    } else {
+      alert("Could not find this address.");
+    }
+    setResolving(false);
+  };
 
   const handleSave = () => {
     const newTimestamp = new Date(date).getTime();
@@ -26,6 +51,7 @@ function EditModal({ drink, onClose, onSave }) {
       volume,
       comment,
       timestamp: newTimestamp,
+      locationName: address,
       latitude: lat === "" ? null : parseFloat(lat),
       longitude: lng === "" ? null : parseFloat(lng)
     });
@@ -81,33 +107,31 @@ function EditModal({ drink, onClose, onSave }) {
           }}
         />
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '2rem' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Latitude</label>
-            <input
-              type="number"
-              step="any"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              style={{
-                background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
-                width: '100%', fontSize: '0.9rem'
-              }}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Longitude</label>
-            <input
-              type="number"
-              step="any"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-              style={{
-                background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
-                width: '100%', fontSize: '0.9rem'
-              }}
-            />
-          </div>
+        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Location (Address)</label>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '0.5rem' }}>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Search address..."
+            style={{
+              background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
+              flex: 1, fontSize: '0.9rem'
+            }}
+          />
+          <button
+            onClick={handleLookup}
+            disabled={resolving}
+            style={{
+              background: '#444', color: '#fbb124', border: 'none', padding: '0 12px', borderRadius: '8px',
+              fontSize: '0.8rem', fontWeight: 'bold'
+            }}
+          >
+            {resolving ? '...' : 'Find'}
+          </button>
+        </div>
+        <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '1.5rem', paddingLeft: '5px' }}>
+          {lat ? `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}` : 'No coordinates set'}
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -276,8 +300,12 @@ function App() {
     setError(null)
     try {
       let location = null;
+      let addressName = null;
       try {
         location = await getCurrentLocation();
+        if (location) {
+          addressName = await getAddressFromCoords(location.latitude, location.longitude);
+        }
       } catch (locErr) {
         console.warn("Location fail", locErr);
       }
@@ -287,7 +315,7 @@ function App() {
         latitude: location?.latitude || null,
         longitude: location?.longitude || null,
         accuracy: location?.accuracy || null,
-        locationName: null,
+        locationName: addressName || null,
         volume: volume,
         comment: drinkComment.trim() || null
       };
@@ -541,7 +569,11 @@ function App() {
                       <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
                       {drink.volume || 2}cl
                     </span>
-                    {drink.latitude && (
+                    {drink.locationName ? (
+                      <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
+                      </span>
+                    ) : drink.latitude && (
                       <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
                         <MapPin size={10} style={{ marginRight: 2 }} /> Map
                       </span>
