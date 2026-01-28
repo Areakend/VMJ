@@ -159,6 +159,8 @@ function App() {
   const [drinkComment, setDrinkComment] = useState("");
   const [selectedBuddies, setSelectedBuddies] = useState([]); // Array of {uid, username}
   const [buddyFilter, setBuddyFilter] = useState(null); // UID of buddy to filter by in history
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -400,9 +402,24 @@ function App() {
     event.target.value = null;
   }
 
+  // Filtering logic for the history list
+  const filteredDrinks = drinks.filter(d => {
+    const dDate = new Date(d.timestamp);
+    const afterStart = !startDate || dDate >= new Date(startDate);
+    const beforeEnd = !endDate || dDate <= new Date(endDate);
+    const matchesBuddy = !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter);
+    return afterStart && beforeEnd && matchesBuddy;
+  });
+
   // Stats
   const totalDrinks = drinks.length;
   const totalVolumeCl = drinks.reduce((acc, curr) => acc + (curr.volume || 2), 0);
+
+  // Shared Stats (when buddyFilter is active)
+  const sharedStats = buddyFilter ? {
+    shots: filteredDrinks.length,
+    volume: filteredDrinks.reduce((acc, curr) => acc + (curr.volume || 2), 0)
+  } : null;
 
   // Last Night (Midday to Midday)
   const getLastNightVolume = () => {
@@ -479,30 +496,75 @@ function App() {
       {view === 'friends' ? (
         <Friends />
       ) : view === 'map' ? (
-        <div className="map-view-container" style={{ height: "60vh", minHeight: "400px", width: "100%", display: 'flex', position: 'relative' }}>
-          <DrinkMap
-            key={view + buddyFilter}
-            drinks={mapDrinks.filter(d => !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter && d.userId === currentUser.uid))}
-            userLocation={locationState}
-          />
-          <MapFilter
-            friends={friends}
-            selectedUids={selectedMapUids}
-            onToggle={setSelectedMapUids}
-            currentUserId={currentUser.uid}
-          />
-          {friends.length > 0 && (
-            <div style={{ position: 'absolute', bottom: '10px', left: '10px', zIndex: 1000, background: 'rgba(26, 26, 26, 0.9)', padding: '5px 10px', borderRadius: '8px', border: '1px solid #333' }}>
-              <select
-                value={buddyFilter || "all"}
-                onChange={(e) => setBuddyFilter(e.target.value === "all" ? null : e.target.value)}
-                style={{ background: 'transparent', color: '#fbb124', border: 'none', fontSize: '0.75rem', fontWeight: 'bold' }}
-              >
-                <option value="all">Map: All sessions</option>
-                {friends.map(f => <option key={f.uid} value={f.uid}>With {f.username}</option>)}
-              </select>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {/* Map Filters Header */}
+          <div className="filter-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold' }}>MAP FILTERS</span>
+              {sharedStats && (
+                <div className="shared-stats-badge">
+                  <Target size={12} /> {sharedStats.shots} shots together
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="date-filter-row">
+              <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              <span style={{ color: '#444' }}>→</span>
+              <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: 'transparent', border: 'none', color: '#fbb124', fontSize: '1.2rem' }}>&times;</button>}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
+              <button
+                onClick={() => setBuddyFilter(null)}
+                style={{
+                  padding: '4px 12px', borderRadius: '15px', border: '1px solid',
+                  borderColor: !buddyFilter ? '#fbb124' : '#333',
+                  background: !buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
+                  color: !buddyFilter ? '#fbb124' : '#666',
+                  fontSize: '0.75rem', flexShrink: 0
+                }}
+              >
+                All
+              </button>
+              {friends.map(f => (
+                <button
+                  key={f.uid}
+                  onClick={() => setBuddyFilter(f.uid === buddyFilter ? null : f.uid)}
+                  style={{
+                    padding: '4px 12px', borderRadius: '15px', border: '1px solid',
+                    borderColor: f.uid === buddyFilter ? '#fbb124' : '#333',
+                    background: f.uid === buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
+                    color: f.uid === buddyFilter ? '#fbb124' : '#666',
+                    fontSize: '0.75rem', flexShrink: 0
+                  }}
+                >
+                  {f.username}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="map-view-container" style={{ position: 'relative' }}>
+            <DrinkMap
+              key={view + buddyFilter + startDate + endDate}
+              drinks={mapDrinks.filter(d => {
+                const date = new Date(d.timestamp);
+                const afterStart = !startDate || date >= new Date(startDate);
+                const beforeEnd = !endDate || date <= new Date(endDate);
+                const matchesBuddy = !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter && d.userId === currentUser.uid);
+                return afterStart && beforeEnd && matchesBuddy;
+              })}
+              userLocation={locationState}
+            />
+            <MapFilter
+              friends={friends}
+              selectedUids={selectedMapUids}
+              onToggle={setSelectedMapUids}
+              currentUserId={currentUser.uid}
+            />
+          </div>
         </div>
       ) : (
         <>
@@ -607,18 +669,54 @@ function App() {
           </div>
 
           <div className="history-container">
-            <div className="history-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Recent Activity</span>
-              {friends.length > 0 && (
-                <select
-                  onChange={(e) => setBuddyFilter(e.target.value === "all" ? null : e.target.value)}
-                  style={{ background: '#222', color: '#fbb124', border: 'none', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px' }}
+            <div className="filter-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'bold' }}>FILTER ACTIVITY</span>
+                {sharedStats && (
+                  <div className="shared-stats-badge">
+                    <Users size={12} /> {sharedStats.shots} shots together
+                  </div>
+                )}
+              </div>
+
+              <div className="date-filter-row">
+                <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <span style={{ color: '#444' }}>→</span>
+                <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
+                <button
+                  onClick={() => setBuddyFilter(null)}
+                  style={{
+                    padding: '6px 14px', borderRadius: '20px', border: '1px solid',
+                    borderColor: !buddyFilter ? '#fbb124' : '#333',
+                    background: !buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
+                    color: !buddyFilter ? '#fbb124' : '#888',
+                    fontSize: '0.8rem', flexShrink: 0
+                  }}
                 >
-                  <option value="all">Filter: All</option>
-                  {friends.map(f => <option key={f.uid} value={f.uid}>{f.username}</option>)}
-                </select>
-              )}
+                  All
+                </button>
+                {friends.map(f => (
+                  <button
+                    key={f.uid}
+                    onClick={() => setBuddyFilter(f.uid === buddyFilter ? null : f.uid)}
+                    style={{
+                      padding: '6px 14px', borderRadius: '20px', border: '1px solid',
+                      borderColor: f.uid === buddyFilter ? '#fbb124' : '#333',
+                      background: f.uid === buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
+                      color: f.uid === buddyFilter ? '#fbb124' : '#888',
+                      fontSize: '0.8rem', flexShrink: 0
+                    }}
+                  >
+                    {f.username}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <div className="history-header">Recent Activity</div>
 
             {drinks.length === 0 && (
               <p style={{ color: '#666', textAlign: 'center', margin: '2rem 0', fontStyle: 'italic' }}>
@@ -626,62 +724,60 @@ function App() {
               </p>
             )}
 
-            {drinks
-              .filter(d => !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter))
-              .slice(0, 10).map(drink => (
-                <div key={drink.id} className="history-item">
-                  <div style={{ flex: 1 }}>
-                    <div className="history-time">
-                      {format(new Date(drink.timestamp), 'HH:mm')}
-                      <span className="history-date"> {format(new Date(drink.timestamp), 'dd MMM')}</span>
-                    </div>
-                    <div className="history-meta">
-                      <span className="tag">
-                        <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
-                        {drink.volume || 2}cl
+            {filteredDrinks.slice(0, 10).map(drink => (
+              <div key={drink.id} className="history-item">
+                <div style={{ flex: 1 }}>
+                  <div className="history-time">
+                    {format(new Date(drink.timestamp), 'HH:mm')}
+                    <span className="history-date"> {format(new Date(drink.timestamp), 'dd MMM')}</span>
+                  </div>
+                  <div className="history-meta">
+                    <span className="tag">
+                      <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
+                      {drink.volume || 2}cl
+                    </span>
+                    {drink.locationName ? (
+                      <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
                       </span>
-                      {drink.locationName ? (
-                        <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
-                        </span>
-                      ) : drink.latitude && (
-                        <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
-                          <MapPin size={10} style={{ marginRight: 2 }} /> Map
-                        </span>
-                      )}
+                    ) : drink.latitude && (
+                      <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
+                        <MapPin size={10} style={{ marginRight: 2 }} /> Map
+                      </span>
+                    )}
+                  </div>
+                  {drink.buddies && drink.buddies.length > 0 && (
+                    <div style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Users size={10} />
+                      <span>with {drink.buddies.map(b => b.username).join(', ')}</span>
                     </div>
-                    {drink.buddies && drink.buddies.length > 0 && (
-                      <div style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Users size={10} />
-                        <span>with {drink.buddies.map(b => b.username).join(', ')}</span>
-                      </div>
-                    )}
-                    {drink.creatorId !== currentUser.uid && (
-                      <div style={{ fontSize: '0.65rem', color: '#888', fontStyle: 'italic' }}>Tagged by {drink.creatorName || 'a buddy'}</div>
-                    )}
-                    {drink.comment && (
-                      <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
-                        "{drink.comment}"
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => setEditingDrink(drink)}
-                      className="delete-btn"
-                      style={{ color: '#888' }}
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteDrink(currentUser.uid, drink.id)}
-                      className="delete-btn"
-                    >
-                      &times;
-                    </button>
-                  </div>
+                  )}
+                  {drink.creatorId !== currentUser.uid && (
+                    <div style={{ fontSize: '0.65rem', color: '#888', fontStyle: 'italic' }}>Tagged by {drink.creatorName || 'a buddy'}</div>
+                  )}
+                  {drink.comment && (
+                    <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
+                      "{drink.comment}"
+                    </div>
+                  )}
                 </div>
-              ))}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setEditingDrink(drink)}
+                    className="delete-btn"
+                    style={{ color: '#888' }}
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button
+                    onClick={() => deleteDrink(currentUser.uid, drink.id)}
+                    className="delete-btn"
+                  >
+                    &times;
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Import / Export */}

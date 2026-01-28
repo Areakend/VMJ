@@ -8,7 +8,9 @@
 - **Drink Comments**: Add a note to your shots (e.g., "A toast to the host!") which appears in your history and notifications.
 - **Address-based Location**: Human-readable addresses are now automatically captured. You can also edit locations by searching for an address instead of using coordinates.
 - **Drinking Buddies**: Tag your Crew when taking a shot! The drink is automatically synced to everyone's history, and you can filter activity to see only the shots you took with specific friends.
-- **Social Deletion**: If you are the one who tracked a shared drink, deleting it will now remove it for everyone involved. If you were just tagged, deleting it only removes it from your own history.
+- **Social Deletion**: If you are the one who tracked a shared drink, deleting it will now remove it for everyone involved.
+- **Advanced Filtering**: New date range filters (From/To) and a redesigned buddy selector in history and map.
+- **Shared Stats**: When filtering by a friend, see exactly how many drinks you've shared together!
  You can also edit locations by searching for an address instead of using coordinates.
 
 ### 🛠️ Improvements & Fixes

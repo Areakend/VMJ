@@ -298,6 +298,46 @@ h1 {
   border-left: 3px solid var(--jager-orange);
 }
 
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--jager-card);
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.date-filter-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.date-input {
+  background: #2a2a2a;
+  color: white;
+  border: 1px solid #333;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  flex: 1;
+}
+
+.shared-stats-badge {
+  background: rgba(251, 177, 36, 0.15);
+  border: 1px solid var(--jager-orange);
+  color: var(--jager-orange);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .history-item {
   background: var(--jager-card);
   margin-bottom: 8px;
