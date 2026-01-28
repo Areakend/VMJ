@@ -30,14 +30,19 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend", 
         const docRef = await addDoc(getDrinksCollection(userId), enrichedDrink);
 
         // 1. Save to buddies' collections
+        const syncedIds = {}; // buddyUid -> buddyDocId
         if (buddies.length > 0) {
-            const syncPromises = buddies.map(buddy =>
-                addDoc(getDrinksCollection(buddy.uid), {
+            const syncPromises = buddies.map(async (buddy) => {
+                const bRef = await addDoc(getDrinksCollection(buddy.uid), {
                     ...enrichedDrink,
                     originalDrinkId: docRef.id
-                })
-            );
+                });
+                syncedIds[buddy.uid] = bRef.id;
+            });
             await Promise.all(syncPromises);
+
+            // Update original doc with the buddy doc IDs for future deletion sync
+            await setDoc(docRef, { syncedIds }, { merge: true });
         }
 
         // 2. Background: Send notifications to friends NOT in the drinking session
@@ -120,9 +125,26 @@ export const subscribeToDrinks = (userId, callback) => {
 
 export const deleteDrink = async (userId, drinkId) => {
     try {
-        await deleteDoc(doc(db, "users", userId, "drinks", drinkId));
+        const drinkRef = doc(db, "users", userId, "drinks", drinkId);
+        const drinkSnap = await getDoc(drinkRef);
+
+        if (drinkSnap.exists()) {
+            const data = drinkSnap.data();
+
+            // If I am the creator, delete from my buddies too
+            if (data.creatorId === userId && data.syncedIds) {
+                const deletePromises = Object.entries(data.syncedIds).map(([buddyUid, buddyDocId]) =>
+                    deleteDoc(doc(db, "users", buddyUid, "drinks", buddyDocId))
+                );
+                await Promise.all(deletePromises);
+            }
+        }
+
+        await deleteDoc(drinkRef);
+        return true;
     } catch (error) {
         console.error("Error deleting drink:", error);
+        throw error;
     }
 }
 
