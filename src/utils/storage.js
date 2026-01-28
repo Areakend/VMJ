@@ -34,7 +34,9 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend") 
 
                 const batchPromises = friends.map(friendId =>
                     addDoc(collection(db, "users", friendId, "notifications"), {
-                        message: `${currentUsername}: ${message}`,
+                        message: drinkData.comment
+                            ? `${currentUsername}: ${message} ("${drinkData.comment}")`
+                            : `${currentUsername}: ${message}`,
                         drinkName: drinkData.name || "Jäger",
                         timestamp: now,
                         fromUid: userId

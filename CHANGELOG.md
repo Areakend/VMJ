@@ -5,6 +5,8 @@
 - **Map Friend Locations**: You can now toggle visibility of your "Crew" members on the map and see their recent activity via markers.
 - **Background Push Notifications**: Using Firebase Cloud Messaging, you now receive alerts even when the app is closed.
 - **Language Standardization**: The entire app (UI, alerts, and 20+ funny notifications) has been translated to **English**.
+- **Drink Comments**: Add a note to your shots (e.g., "A toast to the host!") which appears in your history and notifications.
+- **Location Editing**: Manually adjust the GPS coordinates of any past drink in the Edit menu.
 
 ### 🛠️ Improvements & Fixes
 - **Security Patch**: Upgraded React to `19.2.1` to address the `CVE-2025-55182` vulnerability.

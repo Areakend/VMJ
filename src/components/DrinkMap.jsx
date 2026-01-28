@@ -92,6 +92,11 @@ export default function DrinkMap({ drinks, userLocation }) {
                                         {format(new Date(drink.timestamp), 'HH:mm')}
                                     </div>
                                     <div style={{ fontWeight: 'bold', color: '#888' }}>{drink.volume || 2}cl</div>
+                                    {drink.comment && (
+                                        <div style={{ marginTop: '8px', fontStyle: 'italic', fontSize: '0.8rem', borderTop: '1px solid #eee', paddingTop: '4px' }}>
+                                            "{drink.comment}"
+                                        </div>
+                                    )}
                                 </div>
                             </Popup>
                         </Marker>

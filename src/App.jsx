@@ -16,10 +16,19 @@ import { PushNotifications } from '@capacitor/push-notifications'
 function EditModal({ drink, onClose, onSave }) {
   const [volume, setVolume] = useState(drink.volume || 2);
   const [date, setDate] = useState(format(new Date(drink.timestamp), "yyyy-MM-dd'T'HH:mm"));
+  const [comment, setComment] = useState(drink.comment || "");
+  const [lat, setLat] = useState(drink.latitude || "");
+  const [lng, setLng] = useState(drink.longitude || "");
 
   const handleSave = () => {
     const newTimestamp = new Date(date).getTime();
-    onSave(drink.id, { volume, timestamp: newTimestamp });
+    onSave(drink.id, {
+      volume,
+      comment,
+      timestamp: newTimestamp,
+      latitude: lat === "" ? null : parseFloat(lat),
+      longitude: lng === "" ? null : parseFloat(lng)
+    });
   };
 
   return (
@@ -61,6 +70,46 @@ function EditModal({ drink, onClose, onSave }) {
           ))}
         </div>
 
+        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Comment</label>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="What was the occasion?"
+          style={{
+            background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
+            width: '100%', minHeight: '60px', marginBottom: '1.5rem', fontSize: '1rem', resize: 'none'
+          }}
+        />
+
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '2rem' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Latitude</label>
+            <input
+              type="number"
+              step="any"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+              style={{
+                background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
+                width: '100%', fontSize: '0.9rem'
+              }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Longitude</label>
+            <input
+              type="number"
+              step="any"
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+              style={{
+                background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
+                width: '100%', fontSize: '0.9rem'
+              }}
+            />
+          </div>
+        </div>
+
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={onClose} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid #444', color: '#888', borderRadius: '8px' }}>Cancel</button>
           <button onClick={handleSave} style={{ flex: 1, padding: '12px', background: '#fbb124', border: 'none', color: 'black', borderRadius: '8px', fontWeight: 'bold' }}>Save</button>
@@ -83,6 +132,7 @@ function App() {
   const [friends, setFriends] = useState([]);
   const [selectedMapUids, setSelectedMapUids] = useState([]);
   const [mapDrinks, setMapDrinks] = useState([]);
+  const [drinkComment, setDrinkComment] = useState("");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -238,10 +288,12 @@ function App() {
         longitude: location?.longitude || null,
         accuracy: location?.accuracy || null,
         locationName: null,
-        volume: volume
+        volume: volume,
+        comment: drinkComment.trim() || null
       };
 
       await addDrink(currentUser.uid, newDrink, userData?.username || "A friend");
+      setDrinkComment(""); // Reset comment
 
     } catch (err) {
       console.error(err);
@@ -438,6 +490,24 @@ function App() {
             ))}
           </div>
 
+          <div style={{ padding: '0 20px', marginBottom: '10px' }}>
+            <input
+              type="text"
+              value={drinkComment}
+              onChange={(e) => setDrinkComment(e.target.value)}
+              placeholder="Add a comment... (optional)"
+              style={{
+                width: '100%',
+                background: '#1a1a1a',
+                border: '1px solid #333',
+                padding: '12px',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '0.9rem'
+              }}
+            />
+          </div>
+
           <div className="main-action-area">
             <button
               className="drink-button"
@@ -477,6 +547,11 @@ function App() {
                       </span>
                     )}
                   </div>
+                  {drink.comment && (
+                    <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
+                      "{drink.comment}"
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
