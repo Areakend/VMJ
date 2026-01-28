@@ -85,9 +85,14 @@ export default function DrinkMap({ drinks, userLocation }) {
                             icon={stagIcon}
                         >
                             <Popup>
-                                <strong>{format(new Date(drink.timestamp), 'dd MMM yyyy')}</strong><br />
-                                {format(new Date(drink.timestamp), 'HH:mm')}<br />
-                                {drink.volume || 2}cl
+                                <div style={{ textAlign: 'center' }}>
+                                    <strong style={{ color: '#fbb124', display: 'block', fontSize: '1rem' }}>{drink.username || 'Buddy'}</strong>
+                                    <div style={{ margin: '4px 0', fontSize: '0.85rem' }}>
+                                        {format(new Date(drink.timestamp), 'dd MMM yyyy')}<br />
+                                        {format(new Date(drink.timestamp), 'HH:mm')}
+                                    </div>
+                                    <div style={{ fontWeight: 'bold', color: '#888' }}>{drink.volume || 2}cl</div>
+                                </div>
                             </Popup>
                         </Marker>
                     ) : null

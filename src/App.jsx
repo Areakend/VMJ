@@ -9,6 +9,8 @@ import Login from './components/Login'
 import UsernameSetup from './components/UsernameSetup'
 import Friends from './components/Friends'
 import DrinkMap from './components/DrinkMap'
+import MapFilter from './components/MapFilter'
+import { subscribeToFriends } from './utils/storage'
 
 function EditModal({ drink, onClose, onSave }) {
   const [volume, setVolume] = useState(drink.volume || 2);
@@ -77,6 +79,9 @@ function App() {
   const [locationState, setLocationState] = useState(null);
   const [editingDrink, setEditingDrink] = useState(null);
   const [notifPermission, setNotifPermission] = useState('prompt'); // 'prompt', 'granted', 'denied'
+  const [friends, setFriends] = useState([]);
+  const [selectedMapUids, setSelectedMapUids] = useState([]);
+  const [mapDrinks, setMapDrinks] = useState([]);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -88,11 +93,50 @@ function App() {
       const unsubscribe = subscribeToDrinks(currentUser.uid, (data) => {
         setDrinks(data);
       });
-      return () => unsubscribe();
+      const unsubFriends = subscribeToFriends(currentUser.uid, (data) => {
+        setFriends(data);
+      });
+      return () => {
+        unsubscribe();
+        unsubFriends();
+      }
     } else {
       setDrinks([]);
+      setFriends([]);
     }
   }, [currentUser]);
+
+  // Initial selected UIDs
+  useEffect(() => {
+    if (currentUser && selectedMapUids.length === 0) {
+      setSelectedMapUids([currentUser.uid]);
+    }
+  }, [currentUser]);
+
+  // Fetch drinks for the map view
+  useEffect(() => {
+    if (!currentUser || view !== 'map' || selectedMapUids.length === 0) return;
+
+    const unsubs = [];
+    const collections = {}; // uid -> drinks[]
+
+    selectedMapUids.forEach(uid => {
+      const unsub = subscribeToDrinks(uid, (userDrinks) => {
+        collections[uid] = userDrinks.map(d => ({
+          ...d,
+          userId: uid,
+          username: uid === currentUser.uid ? userData.username : (friends.find(f => f.uid === uid)?.username || 'Buddy')
+        }));
+
+        // Combine all currently fetched
+        const combined = Object.values(collections).flat();
+        setMapDrinks(combined);
+      });
+      unsubs.push(unsub);
+    });
+
+    return () => unsubs.forEach(u => u());
+  }, [view, selectedMapUids, currentUser, friends, userData]);
 
   // Social Notification Listener
   useEffect(() => {
@@ -318,8 +362,14 @@ function App() {
       {view === 'friends' ? (
         <Friends />
       ) : view === 'map' ? (
-        <div className="map-view-container" style={{ height: "60vh", minHeight: "400px", width: "100%", display: 'flex' }}>
-          <DrinkMap key={view} drinks={drinks} userLocation={locationState} />
+        <div className="map-view-container" style={{ height: "60vh", minHeight: "400px", width: "100%", display: 'flex', position: 'relative' }}>
+          <DrinkMap key={view} drinks={mapDrinks} userLocation={locationState} />
+          <MapFilter
+            friends={friends}
+            selectedUids={selectedMapUids}
+            onToggle={setSelectedMapUids}
+            currentUserId={currentUser.uid}
+          />
         </div>
       ) : (
         <>
