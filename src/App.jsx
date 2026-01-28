@@ -568,20 +568,21 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <div className="stat-item">
+          {/* Stats Header */}
+          <div className="stats" style={{ marginBottom: '3.5rem' }}>
+            <div className="stat-item" style={{ borderTop: '2px solid rgba(255,255,255,0.05)' }}>
               <strong>{totalDrinks}</strong>
               <span>Total Shots</span>
             </div>
-            <div className="stat-item" style={{ borderLeft: '1px solid #333' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <strong style={{ fontSize: '1.2rem' }}>{(totalVolumeCl / 100).toFixed(2)}L</strong>
-                <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'none' }}>{(totalVolumeCl / 70).toFixed(1)} bottles</span>
-              </div>
+            <div className="stat-item" style={{ borderTop: '2px solid var(--jager-orange)', background: 'rgba(251, 177, 36, 0.08)', transform: 'scale(1.05)' }}>
+              <strong>{lastNightVolume}cl</strong>
+              <span>Last Night</span>
             </div>
-            <div className="stat-item" style={{ borderLeft: '1px solid #333', background: lastNightVolume > 0 ? 'rgba(251, 177, 36, 0.1)' : 'transparent' }}>
-              <strong style={{ color: lastNightVolume > 0 ? '#fbb124' : 'inherit' }}>{lastNightVolume}cl</strong>
-              <span style={{ fontSize: '0.65rem' }}>Last Night</span>
+            <div className="stat-item" style={{ borderTop: '2px solid #555' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <strong style={{ fontSize: '1.2rem' }}>{(totalVolumeCl / 70).toFixed(1)}</strong>
+                <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'lowercase' }}>bottles</span>
+              </div>
             </div>
           </div>
 
@@ -600,9 +601,9 @@ function App() {
           </div>
 
           {/* Buddy Selection */}
-          <div style={{ padding: '0 20px', marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: '#888', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Drinking with:</label>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '5px', scrollbarWidth: 'none' }}>
+          <div style={{ padding: '0 5px', marginBottom: '2.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', paddingLeft: '15px' }}>Tag the Crew:</label>
+            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 15px 5px 15px', scrollbarWidth: 'none' }}>
               {friends.map(f => {
                 const isSelected = selectedBuddies.some(b => b.uid === f.uid);
                 return (
@@ -638,34 +639,36 @@ function App() {
             </div>
           </div>
 
-          <div style={{ padding: '0 20px', marginBottom: '10px' }}>
+          <div style={{ padding: '0 15px', marginBottom: '3rem' }}>
             <input
               type="text"
               value={drinkComment}
               onChange={(e) => setDrinkComment(e.target.value)}
-              placeholder="Add a comment... (optional)"
+              placeholder="A toast for..."
               style={{
                 width: '100%',
-                background: '#1a1a1a',
-                border: '1px solid #333',
-                padding: '12px',
-                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                padding: '16px',
+                borderRadius: '16px',
                 color: 'white',
-                fontSize: '0.9rem'
+                fontSize: '0.95rem',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
               }}
             />
           </div>
 
-          <div className="main-action-area">
+          <div className="main-action-area" style={{ marginBottom: '4rem' }}>
             <button
               className="drink-button"
               onClick={handleDrink}
               disabled={loading}
+              style={{ width: '210px', height: '210px', boxShadow: '0 0 40px rgba(251, 177, 36, 0.1)' }}
             >
-              <Beer size={42} />
-              <span className="label">{loading ? '...' : 'Cheers!'}</span>
+              <Beer size={48} />
+              <span className="label" style={{ fontSize: '1.6rem' }}>{loading ? '...' : 'Cheers!'}</span>
             </button>
-            {error && <div style={{ color: '#ef4444', marginTop: '10px', fontSize: '0.9rem' }}>{error}</div>}
+            {error && <div style={{ color: '#ef4444', marginTop: '15px', fontSize: '0.9rem' }}>{error}</div>}
           </div>
 
           <div className="history-container">

@@ -132,43 +132,52 @@ h1 {
 .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 2rem;
+  gap: 16px;
+  margin-bottom: 2.5rem;
 }
 
 .stat-item {
-  background: var(--jager-card);
-  padding: 16px 8px;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  padding: 20px 10px;
+  border-radius: 24px;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(251, 177, 36, 0.2);
 }
 
 .stat-item strong {
   display: block;
-  font-size: 1.4rem;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--jager-orange);
+  margin-bottom: 2px;
+  font-weight: 800;
 }
 
 .stat-item span {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 600;
 }
 
 /* --- Volume Selector --- */
 .volume-container {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 2rem;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 8px;
-  border-radius: 16px;
+  gap: 10px;
+  margin-bottom: 2.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .volume-btn {
@@ -301,12 +310,12 @@ h1 {
 .filter-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  background: var(--jager-card);
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 16px;
+  border-radius: 20px;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .date-filter-row {
