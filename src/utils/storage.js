@@ -17,7 +17,7 @@ import {
 // Helper to get collection ref
 const getDrinksCollection = (userId) => collection(db, "users", userId, "drinks");
 
-export const addDrink = async (userId, drinkData, currentUsername = "Un ami") => {
+export const addDrink = async (userId, drinkData, currentUsername = "A friend") => {
     try {
         const docRef = await addDoc(getDrinksCollection(userId), drinkData);
 
@@ -274,5 +274,16 @@ export const subscribeToFriends = (userId, callback) => {
         const friends = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         callback(friends);
     });
+};
+
+export const saveFcmToken = async (userId, token) => {
+    try {
+        const userRef = doc(db, "users", userId);
+        await setDoc(userRef, { fcmToken: token }, { merge: true });
+        return true;
+    } catch (e) {
+        console.error("Error saving FCM token:", e);
+        return false;
+    }
 };
 

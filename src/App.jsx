@@ -10,7 +10,8 @@ import UsernameSetup from './components/UsernameSetup'
 import Friends from './components/Friends'
 import DrinkMap from './components/DrinkMap'
 import MapFilter from './components/MapFilter'
-import { subscribeToFriends } from './utils/storage'
+import { subscribeToFriends, saveFcmToken } from './utils/storage'
+import { PushNotifications } from '@capacitor/push-notifications'
 
 function EditModal({ drink, onClose, onSave }) {
   const [volume, setVolume] = useState(drink.volume || 2);
@@ -143,31 +144,26 @@ function App() {
     if (!currentUser) return;
 
     const setupNotifications = async () => {
+      // --- Local Notifications (Social Banner) ---
       let currentPerm = 'granted';
       if (Capacitor.isNativePlatform()) {
         const { LocalNotifications } = await import('@capacitor/local-notifications');
         const status = await LocalNotifications.checkPermissions();
         currentPerm = status.display;
         setNotifPermission(currentPerm);
-
-        if (currentPerm === 'prompt') {
-          // We'll let the user click the banner to request
-        } else if (currentPerm === 'granted') {
-          // Already good
-        }
       } else {
-        setNotifPermission('granted'); // Web fallback
+        setNotifPermission('granted');
       }
 
       if (currentPerm === 'granted') {
         const { subscribeToIncomingNotifications } = await import('./utils/storage');
-        return subscribeToIncomingNotifications(currentUser.uid, async (notif) => {
+        const unsub = subscribeToIncomingNotifications(currentUser.uid, async (notif) => {
           if (Capacitor.isNativePlatform()) {
             const { LocalNotifications } = await import('@capacitor/local-notifications');
             await LocalNotifications.schedule({
               notifications: [
                 {
-                  title: "Nouveau Jäger ! 🦌",
+                  title: "New Jäger! 🦌",
                   body: notif.message,
                   id: Math.floor(Math.random() * 10000),
                   schedule: { at: new Date(Date.now() + 100) }
@@ -178,12 +174,47 @@ function App() {
             console.log("Social Notification:", notif.message);
           }
         });
+        return unsub;
       }
     };
 
-    let unsubscribe;
-    setupNotifications().then(unsub => unsubscribe = unsub);
-    return () => unsubscribe && unsubscribe();
+    // --- Push Notifications (Background) ---
+    const setupPush = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+
+      let status = await PushNotifications.checkPermissions();
+      if (status.receive === 'prompt') {
+        status = await PushNotifications.requestPermissions();
+      }
+
+      if (status.receive === 'granted') {
+        PushNotifications.register();
+
+        PushNotifications.addListener('registration', (token) => {
+          console.log("Push Registration Success:", token.value);
+          saveFcmToken(currentUser.uid, token.value);
+        });
+
+        PushNotifications.addListener('registrationError', (err) => {
+          console.error("Push Registration Error:", err);
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log("Push Received:", notification);
+        });
+      }
+    };
+
+    let unsubLocal;
+    setupNotifications().then(unsub => unsubLocal = unsub);
+    setupPush();
+
+    return () => {
+      if (unsubLocal) unsubLocal();
+      if (Capacitor.isNativePlatform()) {
+        PushNotifications.removeAllListeners();
+      }
+    };
   }, [currentUser]);
 
   if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
@@ -210,7 +241,7 @@ function App() {
         volume: volume
       };
 
-      await addDrink(currentUser.uid, newDrink, userData?.username || "Un ami");
+      await addDrink(currentUser.uid, newDrink, userData?.username || "A friend");
 
     } catch (err) {
       console.error(err);
@@ -268,7 +299,7 @@ function App() {
                 volume: d.volume || 2,
                 importedAt: Date.now()
               };
-              await addDrink(currentUser.uid, dToSave, userData?.username || "Un ami");
+              await addDrink(currentUser.uid, dToSave, userData?.username || "A friend");
               count++;
             }
             setLoading(false);
@@ -355,7 +386,7 @@ function App() {
             setNotifPermission(res.display);
             if (res.display === 'granted') window.location.reload(); // Re-trigger listener
           }}>
-          🔔 Activer les notifications sociales pour le Crew ? (Cliquez ici)
+          🔔 Enable social notifications for the Crew? (Click here)
         </div>
       )}
 
