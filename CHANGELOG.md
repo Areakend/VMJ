@@ -7,6 +7,8 @@
 - **Language Standardization**: The entire app (UI, alerts, and 20+ funny notifications) has been translated to **English**.
 - **Drink Comments**: Add a note to your shots (e.g., "A toast to the host!") which appears in your history and notifications.
 - **Address-based Location**: Human-readable addresses are now automatically captured. You can also edit locations by searching for an address instead of using coordinates.
+- **Drinking Buddies**: Tag your Crew when taking a shot! The drink is automatically synced to everyone's history, and you can filter activity to see only the shots you took with specific friends.
+ You can also edit locations by searching for an address instead of using coordinates.
 
 ### 🛠️ Improvements & Fixes
 - **Security Patch**: Upgraded React to `19.2.1` to address the `CVE-2025-55182` vulnerability.

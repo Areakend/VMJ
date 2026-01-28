@@ -92,6 +92,16 @@ export default function DrinkMap({ drinks, userLocation }) {
                                         {format(new Date(drink.timestamp), 'HH:mm')}
                                     </div>
                                     <div style={{ fontWeight: 'bold', color: '#888' }}>{drink.volume || 2}cl</div>
+                                    {drink.creatorId && drink.creatorId !== drink.userId && (
+                                        <div style={{ fontSize: '0.7rem', color: '#666', fontStyle: 'italic', marginTop: '2px' }}>
+                                            Tracked by {drink.creatorName || 'a buddy'}
+                                        </div>
+                                    )}
+                                    {drink.buddies && drink.buddies.length > 0 && (
+                                        <div style={{ fontSize: '0.7rem', color: '#fbb124', marginTop: '4px' }}>
+                                            with {drink.buddies.map(b => b.username).join(', ')}
+                                        </div>
+                                    )}
                                     {drink.comment && (
                                         <div style={{ marginTop: '8px', fontStyle: 'italic', fontSize: '0.8rem', borderTop: '1px solid #eee', paddingTop: '4px' }}>
                                             "{drink.comment}"

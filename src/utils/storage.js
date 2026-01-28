@@ -17,22 +17,44 @@ import {
 // Helper to get collection ref
 const getDrinksCollection = (userId) => collection(db, "users", userId, "drinks");
 
-export const addDrink = async (userId, drinkData, currentUsername = "A friend") => {
+export const addDrink = async (userId, drinkData, currentUsername = "A friend", buddies = []) => {
     try {
-        const docRef = await addDoc(getDrinksCollection(userId), drinkData);
+        const enrichedDrink = {
+            ...drinkData,
+            creatorId: userId,
+            creatorName: currentUsername,
+            buddies: buddies, // Array of {uid, username}
+            isShared: buddies.length > 0
+        };
 
-        // Background: Send notifications to friends
+        const docRef = await addDoc(getDrinksCollection(userId), enrichedDrink);
+
+        // 1. Save to buddies' collections
+        if (buddies.length > 0) {
+            const syncPromises = buddies.map(buddy =>
+                addDoc(getDrinksCollection(buddy.uid), {
+                    ...enrichedDrink,
+                    originalDrinkId: docRef.id
+                })
+            );
+            await Promise.all(syncPromises);
+        }
+
+        // 2. Background: Send notifications to friends NOT in the drinking session
         try {
             const friendsSnap = await getDocs(collection(db, "users", userId, "friends"));
-            const friends = friendsSnap.docs.map(doc => doc.id);
+            const allFriendIds = friendsSnap.docs.map(doc => doc.id);
+            const buddyIds = buddies.map(b => b.uid);
 
-            if (friends.length > 0) {
-                // Ensure timestamp is present for delivery
+            // Only notify friends who WEREN'T there
+            const friendsToNotify = allFriendIds.filter(id => !buddyIds.includes(id));
+
+            if (friendsToNotify.length > 0) {
                 const now = Date.now();
                 const { getRandomJagerMessage } = await import("./notifications");
                 const message = getRandomJagerMessage();
 
-                const batchPromises = friends.map(friendId =>
+                const batchPromises = friendsToNotify.map(friendId =>
                     addDoc(collection(db, "users", friendId, "notifications"), {
                         message: drinkData.comment
                             ? `${currentUsername}: ${message} ("${drinkData.comment}")`
@@ -48,7 +70,7 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend") 
             console.warn("Failed to send social notifications:", err);
         }
 
-        return { id: docRef.id, ...drinkData };
+        return { id: docRef.id, ...enrichedDrink };
     } catch (error) {
         console.error("Error adding drink: ", error);
         throw error;

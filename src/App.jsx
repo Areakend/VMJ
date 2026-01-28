@@ -157,6 +157,8 @@ function App() {
   const [selectedMapUids, setSelectedMapUids] = useState([]);
   const [mapDrinks, setMapDrinks] = useState([]);
   const [drinkComment, setDrinkComment] = useState("");
+  const [selectedBuddies, setSelectedBuddies] = useState([]); // Array of {uid, username}
+  const [buddyFilter, setBuddyFilter] = useState(null); // UID of buddy to filter by in history
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -320,8 +322,9 @@ function App() {
         comment: drinkComment.trim() || null
       };
 
-      await addDrink(currentUser.uid, newDrink, userData?.username || "A friend");
+      await addDrink(currentUser.uid, newDrink, userData?.username || "A friend", selectedBuddies);
       setDrinkComment(""); // Reset comment
+      setSelectedBuddies([]); // Reset buddies
 
     } catch (err) {
       console.error(err);
@@ -477,13 +480,29 @@ function App() {
         <Friends />
       ) : view === 'map' ? (
         <div className="map-view-container" style={{ height: "60vh", minHeight: "400px", width: "100%", display: 'flex', position: 'relative' }}>
-          <DrinkMap key={view} drinks={mapDrinks} userLocation={locationState} />
+          <DrinkMap
+            key={view + buddyFilter}
+            drinks={mapDrinks.filter(d => !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter && d.userId === currentUser.uid))}
+            userLocation={locationState}
+          />
           <MapFilter
             friends={friends}
             selectedUids={selectedMapUids}
             onToggle={setSelectedMapUids}
             currentUserId={currentUser.uid}
           />
+          {friends.length > 0 && (
+            <div style={{ position: 'absolute', bottom: '10px', left: '10px', zIndex: 1000, background: 'rgba(26, 26, 26, 0.9)', padding: '5px 10px', borderRadius: '8px', border: '1px solid #333' }}>
+              <select
+                value={buddyFilter || "all"}
+                onChange={(e) => setBuddyFilter(e.target.value === "all" ? null : e.target.value)}
+                style={{ background: 'transparent', color: '#fbb124', border: 'none', fontSize: '0.75rem', fontWeight: 'bold' }}
+              >
+                <option value="all">Map: All sessions</option>
+                {friends.map(f => <option key={f.uid} value={f.uid}>With {f.username}</option>)}
+              </select>
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -518,6 +537,45 @@ function App() {
             ))}
           </div>
 
+          {/* Buddy Selection */}
+          <div style={{ padding: '0 20px', marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', color: '#888', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Drinking with:</label>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '5px', scrollbarWidth: 'none' }}>
+              {friends.map(f => {
+                const isSelected = selectedBuddies.some(b => b.uid === f.uid);
+                return (
+                  <button
+                    key={f.uid}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedBuddies(selectedBuddies.filter(b => b.uid !== f.uid));
+                      } else {
+                        setSelectedBuddies([...selectedBuddies, { uid: f.uid, username: f.username }]);
+                      }
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      border: '1px solid',
+                      borderColor: isSelected ? '#fbb124' : '#333',
+                      background: isSelected ? 'rgba(251, 177, 36, 0.15)' : '#1a1a1a',
+                      color: isSelected ? '#fbb124' : '#888',
+                      fontSize: '0.8rem',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s',
+                      flexShrink: 0
+                    }}
+                  >
+                    {isSelected ? '✓ ' : '+ '}{f.username}
+                  </button>
+                );
+              })}
+              {friends.length === 0 && (
+                <span style={{ fontSize: '0.8rem', color: '#555', fontStyle: 'italic' }}>Add friends to tag them here!</span>
+              )}
+            </div>
+          </div>
+
           <div style={{ padding: '0 20px', marginBottom: '10px' }}>
             <input
               type="text"
@@ -549,7 +607,18 @@ function App() {
           </div>
 
           <div className="history-container">
-            <div className="history-header">Recent Activity</div>
+            <div className="history-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Recent Activity</span>
+              {friends.length > 0 && (
+                <select
+                  onChange={(e) => setBuddyFilter(e.target.value === "all" ? null : e.target.value)}
+                  style={{ background: '#222', color: '#fbb124', border: 'none', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px' }}
+                >
+                  <option value="all">Filter: All</option>
+                  {friends.map(f => <option key={f.uid} value={f.uid}>{f.username}</option>)}
+                </select>
+              )}
+            </div>
 
             {drinks.length === 0 && (
               <p style={{ color: '#666', textAlign: 'center', margin: '2rem 0', fontStyle: 'italic' }}>
@@ -557,51 +626,62 @@ function App() {
               </p>
             )}
 
-            {drinks.slice(0, 10).map(drink => (
-              <div key={drink.id} className="history-item">
-                <div style={{ flex: 1 }}>
-                  <div className="history-time">
-                    {format(new Date(drink.timestamp), 'HH:mm')}
-                    <span className="history-date"> {format(new Date(drink.timestamp), 'dd MMM')}</span>
-                  </div>
-                  <div className="history-meta">
-                    <span className="tag">
-                      <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
-                      {drink.volume || 2}cl
-                    </span>
-                    {drink.locationName ? (
-                      <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
+            {drinks
+              .filter(d => !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter))
+              .slice(0, 10).map(drink => (
+                <div key={drink.id} className="history-item">
+                  <div style={{ flex: 1 }}>
+                    <div className="history-time">
+                      {format(new Date(drink.timestamp), 'HH:mm')}
+                      <span className="history-date"> {format(new Date(drink.timestamp), 'dd MMM')}</span>
+                    </div>
+                    <div className="history-meta">
+                      <span className="tag">
+                        <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
+                        {drink.volume || 2}cl
                       </span>
-                    ) : drink.latitude && (
-                      <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
-                        <MapPin size={10} style={{ marginRight: 2 }} /> Map
-                      </span>
+                      {drink.locationName ? (
+                        <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
+                        </span>
+                      ) : drink.latitude && (
+                        <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
+                          <MapPin size={10} style={{ marginRight: 2 }} /> Map
+                        </span>
+                      )}
+                    </div>
+                    {drink.buddies && drink.buddies.length > 0 && (
+                      <div style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Users size={10} />
+                        <span>with {drink.buddies.map(b => b.username).join(', ')}</span>
+                      </div>
+                    )}
+                    {drink.creatorId !== currentUser.uid && (
+                      <div style={{ fontSize: '0.65rem', color: '#888', fontStyle: 'italic' }}>Tagged by {drink.creatorName || 'a buddy'}</div>
+                    )}
+                    {drink.comment && (
+                      <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
+                        "{drink.comment}"
+                      </div>
                     )}
                   </div>
-                  {drink.comment && (
-                    <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
-                      "{drink.comment}"
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => setEditingDrink(drink)}
+                      className="delete-btn"
+                      style={{ color: '#888' }}
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => deleteDrink(currentUser.uid, drink.id)}
+                      className="delete-btn"
+                    >
+                      &times;
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setEditingDrink(drink)}
-                    className="delete-btn"
-                    style={{ color: '#888' }}
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => deleteDrink(currentUser.uid, drink.id)}
-                    className="delete-btn"
-                  >
-                    &times;
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
 
           {/* Import / Export */}
