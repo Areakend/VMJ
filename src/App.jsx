@@ -636,7 +636,7 @@ function App() {
 
           {/* Buddy Selection */}
           <div style={{ padding: '0 5px', marginBottom: '2.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', paddingLeft: '15px' }}>Tag the Crew:</label>
+            <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', paddingLeft: '15px' }}>Drinking with (Tag Crew):</label>
             <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 15px 5px 15px', scrollbarWidth: 'none' }}>
               {friends.map(f => {
                 const isSelected = selectedBuddies.some(b => b.uid === f.uid);
@@ -676,7 +676,7 @@ function App() {
           <div className="history-container">
             <div className="filter-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'bold' }}>FILTER ACTIVITY</span>
+                <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'bold' }}>FILTER MY HISTORY:</span>
                 {sharedStats && (
                   <div className="shared-stats-badge">
                     <Users size={12} /> {sharedStats.shots} shots together

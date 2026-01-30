@@ -60,7 +60,7 @@ export default function MapFilter({ friends, selectedUids, onToggle, currentUser
                     color: 'white'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#888' }}>Display on Map</h4>
+                        <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#888' }}>Show Activity from:</h4>
                         <button
                             onClick={() => setIsOpen(false)}
                             style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer' }}
