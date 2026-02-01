@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, X, Check, Trash2, Share2, Beer } from 'lucide-react';
+import { UserPlus, Search, X, Check, Trash2, Share2, Beer, ChevronRight } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
