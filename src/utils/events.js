@@ -14,7 +14,8 @@ import {
     arrayUnion,
     arrayRemove,
     runTransaction,
-    deleteDoc
+    deleteDoc,
+    increment
 } from "firebase/firestore";
 
 // --- Event Management ---
@@ -149,4 +150,3 @@ export const inviteToEvent = async (eventId, friendUid, friendUsername) => {
     });
 };
 
-import { increment } from "firebase/firestore";
