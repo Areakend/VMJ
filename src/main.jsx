@@ -2,7 +2,8 @@ import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
-import App from './App.jsx'
+import App from './AppMinimal.jsx'
+// import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
 
 class ErrorBoundary extends Component {
