@@ -9,7 +9,10 @@ export default function CrewSelector({
     title = "Select Crew",
     includeMe = false,
     currentUserId = null,
-    currentUsername = "Me"
+    currentUsername = "Me",
+    showSharedToggle = false,
+    sharedOnly = false,
+    onToggleShared = null
 }) {
     const [search, setSearch] = useState('');
 
@@ -114,6 +117,29 @@ export default function CrewSelector({
                     })}
                     {filteredOptions.length === 0 && <p style={{ textAlign: 'center', color: '#666', marginTop: '1rem' }}>No matches found.</p>}
                 </div>
+
+                {showSharedToggle && onToggleShared && (
+                    <div
+                        onClick={() => onToggleShared(!sharedOnly)}
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '12px', background: 'rgba(255,255,255,0.03)',
+                            borderRadius: '16px', marginBottom: '1.2rem', cursor: 'pointer',
+                            border: '1px solid', borderColor: sharedOnly ? 'var(--jager-orange)' : 'rgba(255,255,255,0.05)'
+                        }}
+                    >
+                        <span style={{ fontSize: '0.9rem', color: sharedOnly ? 'white' : '#888' }}>Shared with me only</span>
+                        <div style={{
+                            width: '40px', height: '20px', background: sharedOnly ? 'var(--jager-orange)' : '#333',
+                            borderRadius: '10px', position: 'relative', transition: 'all 0.3s'
+                        }}>
+                            <div style={{
+                                width: '16px', height: '16px', background: 'white', borderRadius: '50%',
+                                position: 'absolute', top: '2px', left: sharedOnly ? '22px' : '2px', transition: 'all 0.3s'
+                            }} />
+                        </div>
+                    </div>
+                )}
 
                 <button
                     onClick={onClose}

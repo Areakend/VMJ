@@ -162,6 +162,7 @@ function App() {
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
   const [selectedMapFilterBuddies, setSelectedMapFilterBuddies] = useState([]); // Array of {uid, username}
+  const [mapSharedOnly, setMapSharedOnly] = useState(false);
   const [mapDrinks, setMapDrinks] = useState([]);
   const [drinkComment, setDrinkComment] = useState("");
   const [selectedBuddies, setSelectedBuddies] = useState([]); // Array of {uid, username}
@@ -807,7 +808,19 @@ function App() {
                 const date = new Date(d.timestamp);
                 const afterStart = !startDate || date >= new Date(startDate);
                 const beforeEnd = !endDate || date <= new Date(endDate);
-                return afterStart && beforeEnd;
+                if (!afterStart || !beforeEnd) return false;
+
+                if (mapSharedOnly) {
+                  // If it's my drink, it must have a buddy that is in selectedMapFilterBuddies
+                  if (d.userId === currentUser.uid) {
+                    return d.buddies && d.buddies.some(buddy => selectedMapFilterBuddies.some(sb => sb.uid === buddy.uid));
+                  } else {
+                    // If it's a buddy's drink, I must be in their buddies list 
+                    // (and they must be in my selected list, which is already true by mapDrinks content)
+                    return d.buddies && d.buddies.some(b => b.uid === currentUser.uid);
+                  }
+                }
+                return true;
               })}
               userLocation={locationState}
             />
@@ -1136,6 +1149,9 @@ function App() {
           includeMe={true}
           currentUserId={currentUser.uid}
           currentUsername={userData.username}
+          showSharedToggle={true}
+          sharedOnly={mapSharedOnly}
+          onToggleShared={setMapSharedOnly}
         />
       )}
 

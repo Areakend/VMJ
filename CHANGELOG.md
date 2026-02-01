@@ -6,6 +6,7 @@ All notable changes to the Jäger Tracker (ViteMonJager) project will be documen
 
 ### Added
 - **Unified Filtering UI**: Both Activity and Map views now use a consistent "Crew Selector" modal for multi-select filtering.
+- **"Shared Only" Map Filter**: New toggle in the map filter to show only drinks shared with the selected crew members.
 - **Custom Volume Selector**: New interactive virtual bottle UI allows users to select any volume from 1cl to 70cl.
 - **Event Participant Removal**: Event admins (creators) can now remove members from their events via the leaderboard.
 - **Deep Linking**: Enhanced Android App Links support (`vitemonjager://` and https links) for opening the app directly from shared links.
