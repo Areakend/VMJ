@@ -206,16 +206,36 @@ export default function Friends() {
                     <h3 style={{ color: 'var(--jager-orange)', margin: 0 }}>Find a Drinking Buddy</h3>
                     <button
                         onClick={async () => {
+                            const link = `https://vitemonjager.vercel.app/add-friend?username=${userData.username}`;
+                            const title = 'Join my Jäger Crew!';
+                            const text = `Add me on Jäger Tracker: ${userData.username}`;
+
                             try {
-                                const link = `vitemonjager://add-friend?username=${userData.username}`;
-                                await Share.share({
-                                    title: 'Join my Jäger Crew!',
-                                    text: `Add me on Jäger Tracker: ${userData.username} ${link}`,
-                                    url: link,
-                                    dialogTitle: 'Share your profile',
-                                });
+                                if (Capacitor.isNativePlatform()) {
+                                    await Share.share({
+                                        title,
+                                        text: `${text} ${link}`,
+                                        url: link,
+                                        dialogTitle: 'Share your profile',
+                                    });
+                                } else if (navigator.share) {
+                                    await navigator.share({
+                                        title,
+                                        text: `${text} ${link}`,
+                                        url: link,
+                                    });
+                                } else {
+                                    throw new Error('Web Share not supported');
+                                }
                             } catch (e) {
-                                console.log('Share dismissed');
+                                console.log('Share failed or dismissed, trying clipboard', e);
+                                try {
+                                    await navigator.clipboard.writeText(`${text} ${link}`);
+                                    alert("Profile link copied to clipboard! 🦌");
+                                } catch (err) {
+                                    console.error('Clipboard failed', err);
+                                    alert(`Your Profile Link: ${link}`);
+                                }
                             }
                         }}
                         style={{

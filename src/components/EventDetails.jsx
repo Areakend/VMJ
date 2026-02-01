@@ -79,16 +79,36 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
     };
 
     const handleShareEvent = async () => {
+        const link = `https://vitemonjager.vercel.app/event?id=${eventId}`;
+        const title = `Join our Jäger Event: ${event.title}`;
+        const text = `Click to join "${event.title}" on Jäger Tracker!`;
+
         try {
-            const link = `vitemonjager://event?id=${eventId}`;
-            await Share.share({
-                title: `Join our Jäger Event: ${event.title}`,
-                text: `Click to join "${event.title}" on Jäger Tracker! ${link}`,
-                url: link,
-                dialogTitle: 'Share Event',
-            });
+            if (Capacitor.isNativePlatform()) {
+                await Share.share({
+                    title,
+                    text: `${text} ${link}`,
+                    url: link,
+                    dialogTitle: 'Share Event',
+                });
+            } else if (navigator.share) {
+                await navigator.share({
+                    title,
+                    text: `${text} ${link}`,
+                    url: link,
+                });
+            } else {
+                throw new Error('Web Share not supported');
+            }
         } catch (e) {
-            console.log('Share dismissed');
+            console.log('Share failed or dismissed, trying clipboard', e);
+            try {
+                await navigator.clipboard.writeText(`${text} ${link}`);
+                alert("Link copied to clipboard! 🦌");
+            } catch (err) {
+                console.error('Clipboard failed', err);
+                alert(`Event Link: ${link}`);
+            }
         }
     };
 
@@ -287,34 +307,59 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 {sortedLeaderboard.length === 0 && <p style={{ color: '#666', textAlign: 'center' }}>No drinks yet.</p>}
             </div>
 
-            {/* Invite Section (Conditional) */}
+            {/* Invite Modal Section */}
             {showInvite && (
-                <div style={{ padding: '1.5rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '20px', border: '1px solid #333', marginBottom: '2rem' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Invite your Crew</h3>
-                    <div style={{ display: 'flex', overflowX: 'auto', gap: '12px', paddingBottom: '8px', scrollbarWidth: 'none' }}>
-                        {friends.map(friend => {
-                            const isInvited = event.participants.some(p => p.uid === friend.uid);
-                            return (
-                                <div key={friend.uid} style={{
-                                    minWidth: '90px', background: isInvited ? 'rgba(53, 78, 65, 0.2)' : '#222', padding: '12px 8px', borderRadius: '16px',
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.username}</div>
-                                    <button
-                                        disabled={isInvited}
-                                        onClick={() => handleInvite(friend)}
-                                        style={{
-                                            border: 'none', background: isInvited ? 'transparent' : 'var(--jager-orange)',
-                                            color: isInvited ? 'var(--jager-green)' : 'black',
-                                            padding: '6px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 'bold', width: '100%'
-                                        }}
-                                    >
-                                        {isInvited ? 'Added' : 'Add'}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {friends.length === 0 && <p style={{ fontSize: '0.8rem', color: '#666' }}>No friends found.</p>}
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+                    padding: '1.5rem', backdropFilter: 'blur(5px)'
+                }}>
+                    <div style={{
+                        background: '#1c1c1c', width: '100%', maxWidth: '340px', borderRadius: '24px',
+                        padding: '1.5rem', border: '1px solid #333', boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--jager-orange)' }}>Invite your Crew</h3>
+                            <button onClick={() => setShowInvite(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '5px' }}>
+                            {friends.map(friend => {
+                                const isInvited = event.participants.some(p => p.uid === friend.uid);
+                                return (
+                                    <div key={friend.uid} style={{
+                                        background: isInvited ? 'rgba(53, 78, 65, 0.2)' : '#222', padding: '12px 8px', borderRadius: '16px',
+                                        textAlign: 'center', border: isInvited ? '1px solid var(--jager-green)' : '1px solid transparent'
+                                    }}>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.username}</div>
+                                        <button
+                                            disabled={isInvited}
+                                            onClick={() => handleInvite(friend)}
+                                            style={{
+                                                border: 'none', background: isInvited ? 'transparent' : 'var(--jager-orange)',
+                                                color: isInvited ? 'var(--jager-green)' : 'black',
+                                                padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 'bold', width: '100%'
+                                            }}
+                                        >
+                                            {isInvited ? 'Added' : 'Add'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {friends.length === 0 && <p style={{ textAlign: 'center', color: '#666', margin: '2rem 0' }}>No friends found.</p>}
+
+                        <button
+                            onClick={() => setShowInvite(false)}
+                            style={{
+                                width: '100%', marginTop: '1.5rem', padding: '12px', background: '#333', color: 'white',
+                                border: 'none', borderRadius: '12px', fontWeight: 'bold'
+                            }}
+                        >
+                            Done
+                        </button>
                     </div>
                 </div>
             )}
