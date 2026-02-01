@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function isValidUsername(username) {
+      return username.size() >= 3 && username.size() <= 15 && username.matches('^[a-zA-Z0-9_]+$');
+    }
+
+    // User profiles and basic data
+    match /users/{uid} {
+      allow read: if isSignedIn(); // Allow reading profiles for social features
+      allow write: if isOwner(uid);
+
+      match /drinks/{drinkId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /notifications/{notifId} {
+        allow read, delete: if isOwner(uid);
+        // Allow others to send notifications (social tag/invite)
+        allow create: if isSignedIn();
+      }
+
+      match /friendRequests/{senderId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isSignedIn() && request.auth.uid == senderId;
+      }
+
+      match /friends/{friendId} {
+        allow read: if isOwner(uid);
+        // Acceptance writes to both sides
+        allow write: if isOwner(uid) || (isSignedIn() && request.auth.uid == friendId);
+      }
+    }
+
+    // Global username registry to enforce uniqueness
+    match /usernames/{username} {
+      allow read: if true;
+      allow write: if isSignedIn() && (resource == null || resource.data.uid == request.auth.uid);
+    }
+  }
+}

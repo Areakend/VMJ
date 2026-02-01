@@ -8,6 +8,9 @@
             "firebase-debug.*.log"
         ]
     },
+    "firestore": {
+        "rules": "firestore.rules"
+    },
     "hosting": {
         "public": "dist",
         "ignore": [

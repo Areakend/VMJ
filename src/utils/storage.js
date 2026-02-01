@@ -14,10 +14,31 @@ import {
     where
 } from "firebase/firestore";
 
+// --- Validation Helpers ---
+export const validateUsername = (username) => {
+    if (!username) return "Username is required";
+    const clean = username.trim();
+    if (clean.length < 3) return "Username must be at least 3 characters";
+    if (clean.length > 15) return "Username must be at most 15 characters";
+    // Alphanumeric and underscores only, no spaces or special chars (prevents traversal)
+    if (!/^[a-zA-Z0-9_]+$/.test(clean)) return "Username must be alphanumeric (letters, numbers, underscores)";
+    return null;
+};
+
+export const validateComment = (comment) => {
+    if (!comment) return null;
+    if (comment.length > 100) return "Comment is too long (max 100 chars)";
+    return null;
+};
+
 // Helper to get collection ref
 const getDrinksCollection = (userId) => collection(db, "users", userId, "drinks");
 
 export const addDrink = async (userId, drinkData, currentUsername = "A friend", buddies = []) => {
+    // 0. Validate comment
+    const commentError = validateComment(drinkData.comment);
+    if (commentError) throw new Error(commentError);
+
     try {
         const enrichedDrink = {
             ...drinkData,
@@ -170,7 +191,10 @@ export const isUsernameAvailable = async (username) => {
 
 // Claim a username for a user
 export const claimUsername = async (userId, username) => {
-    const normalizeUser = username.toLowerCase();
+    const error = validateUsername(username);
+    if (error) throw new Error(error);
+
+    const normalizeUser = username.toLowerCase().trim();
     const userRef = doc(db, "users", userId);
     const usernameRef = doc(db, "usernames", normalizeUser);
 
@@ -201,6 +225,8 @@ export const claimUsername = async (userId, username) => {
 // Send a friend request
 export const sendFriendRequest = async (currentUserId, currentUsername, targetUsername) => {
     const normalizeTarget = targetUsername.toLowerCase().trim();
+    if (validateUsername(normalizeTarget)) throw new Error("Invalid username format");
+
     const usernameRef = doc(db, "usernames", normalizeTarget);
 
     try {

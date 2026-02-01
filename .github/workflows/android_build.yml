@@ -54,10 +54,13 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug
 
+      - name: Rename APK
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/vitemonjager-beta.apk
+
       - name: Create Release and Upload APK
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "android/app/build/outputs/apk/debug/app-debug.apk"
+          artifacts: "android/app/build/outputs/apk/debug/vitemonjager-beta.apk"
           tag: "v0.1-beta"
           name: "Jäger Tracker v0.1-beta"
           body: |

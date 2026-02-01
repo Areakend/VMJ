@@ -12,9 +12,10 @@ export default function UsernameSetup() {
         e.preventDefault();
         if (!username.trim()) return;
 
-        // Simple validation
-        if (username.length < 3) {
-            setError("Username must be at least 3 characters");
+        // Enhanced validation from storage util
+        const validationError = validateUsername(username.trim());
+        if (validationError) {
+            setError(validationError);
             return;
         }
 

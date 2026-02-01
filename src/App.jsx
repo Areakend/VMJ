@@ -372,16 +372,20 @@ function App() {
         }
 
         if (Array.isArray(importedDrinks)) {
-          if (confirm(`Import ${importedDrinks.length} drinks?`)) {
+          const limit = 100;
+          const toImport = importedDrinks.slice(0, limit);
+
+          if (confirm(`Import ${toImport.length} drinks?${importedDrinks.length > limit ? ` (Limited to first ${limit})` : ''}`)) {
             setLoading(true);
             let count = 0;
-            for (const d of importedDrinks) {
+            for (const d of toImport) {
               if (!d.timestamp && !d.date) continue;
               const dToSave = {
-                timestamp: d.timestamp || new Date(d.date).getTime() || Date.now(),
-                latitude: d.latitude || null,
-                longitude: d.longitude || null,
-                volume: d.volume || 2,
+                timestamp: Number(d.timestamp || new Date(d.date).getTime() || Date.now()),
+                latitude: typeof d.latitude === 'number' ? d.latitude : null,
+                longitude: typeof d.longitude === 'number' ? d.longitude : null,
+                volume: typeof d.volume === 'number' ? d.volume : 2,
+                comment: typeof d.comment === 'string' ? d.comment.slice(0, 100) : null,
                 importedAt: Date.now()
               };
               await addDrink(currentUser.uid, dToSave, userData?.username || "A friend");

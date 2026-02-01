@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 
 // TODO: Replace with your Firebase configuration
 // Get this from: https://console.firebase.google.com
@@ -18,6 +19,16 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
+
+// --- Security: Firebase App Check ---
+// To prevent unauthorized traffic and DDoS, initialize App Check.
+// NOTE: You need to get a ReCaptcha Enterprise Site Key from the Firebase Console.
+/*
+initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider('YOUR_SITE_KEY_HERE'),
+    isTokenAutoRefreshEnabled: true
+});
+*/
 
 // Enable offline persistence
 try {
