@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { inviteToEvent, toggleEventStatus } from '../utils/events';
 import { format } from 'date-fns';
-import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices } from 'lucide-react';
+import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus } from 'lucide-react';
+import { Share } from '@capacitor/share';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
 import JagerRoulette from './JagerRoulette';
@@ -10,6 +11,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
     const [event, setEvent] = useState(null);
     const [eventDrinks, setEventDrinks] = useState([]);
     const [showRoulette, setShowRoulette] = useState(false);
+    const [showInvite, setShowInvite] = useState(false);
 
     // Subscribe to Event Data
     useEffect(() => {
@@ -55,6 +57,38 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
         }
     };
 
+    const handleShareEvent = async () => {
+        try {
+            const link = `vitemonjager://event?id=${eventId}`;
+            await Share.share({
+                title: `Join our Jäger Event: ${event.title}`,
+                text: `Click to join "${event.title}" on Jäger Tracker!`,
+                url: link,
+                dialogTitle: 'Share Event',
+            });
+        } catch (e) {
+            console.log('Share dismissed');
+        }
+    };
+
+    const handleQuickShot = async () => {
+        try {
+            const shot = {
+                timestamp: Date.now(),
+                volume: 2,
+                comment: "Event Shot! 🦌",
+                eventId: eventId
+            };
+            await addEventDrink(eventId, currentUser.uid, userData.username, shot);
+            // Also add to personal log for consistency
+            const { addDrink } = await import('../utils/storage');
+            await addDrink(currentUser.uid, shot, userData.username);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to add shot");
+        }
+    };
+
     if (!event) return <div style={{ color: 'white', textAlign: 'center', marginTop: '2rem' }}>Loading...</div>;
 
     const myParticipantData = event.participants.find(p => p.uid === currentUser.uid);
@@ -96,6 +130,38 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                         <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white' }}>{((event.totalVolume || 0) / 70).toFixed(1)}</div>
                         <div style={{ fontSize: '0.8rem', color: '#888', textTransform: 'uppercase' }}>Bottles</div>
                     </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem' }}>
+                    <button
+                        onClick={handleQuickShot}
+                        style={{
+                            flex: 2, background: 'linear-gradient(135deg, var(--jager-orange), #ff9f1a)', color: 'black',
+                            padding: '14px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '900', border: 'none',
+                            boxShadow: '0 4px 15px rgba(251, 177, 36, 0.3)'
+                        }}
+                    >
+                        <Beer size={20} /> Quick Shot
+                    </button>
+                    <button
+                        onClick={handleShareEvent}
+                        style={{
+                            flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white',
+                            padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold'
+                        }}
+                    >
+                        <Share2 size={18} /> Invite
+                    </button>
+                    <button
+                        onClick={() => setShowInvite(!showInvite)}
+                        style={{
+                            flex: 1, background: showInvite ? 'var(--jager-orange)' : 'rgba(255,255,255,0.05)',
+                            border: showInvite ? 'none' : '1px solid #444', color: showInvite ? 'black' : 'white',
+                            padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold'
+                        }}
+                    >
+                        <UserPlus size={18} /> {showInvite ? 'Close' : 'Crew'}
+                    </button>
                 </div>
 
                 <div style={{ borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
@@ -165,32 +231,37 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 {sortedLeaderboard.length === 0 && <p style={{ color: '#666', textAlign: 'center' }}>No drinks yet.</p>}
             </div>
 
-            {/* Invite Section */}
-            <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '0.5rem', marginBottom: '1rem', marginTop: '2rem' }}>Invite Crew</h3>
-            <div style={{ display: 'flex', overflowX: 'auto', gap: '10px', paddingBottom: '1rem' }}>
-                {friends.map(friend => {
-                    const isInvited = event.participants.some(p => p.uid === friend.uid);
-                    return (
-                        <div key={friend.uid} style={{
-                            minWidth: '100px', background: '#222', padding: '1rem', borderRadius: '12px',
-                            textAlign: 'center', opacity: isInvited ? 0.5 : 1
-                        }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{friend.username}</div>
-                            <button
-                                disabled={isInvited}
-                                onClick={() => handleInvite(friend)}
-                                style={{
-                                    border: 'none', background: isInvited ? 'transparent' : 'var(--jager-orange)',
-                                    color: isInvited ? '#888' : 'black',
-                                    padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold', width: '100%'
-                                }}
-                            >
-                                {isInvited ? 'Invited' : 'Invite'}
-                            </button>
-                        </div>
-                    );
-                })}
-            </div>
+            {/* Invite Section (Conditional) */}
+            {showInvite && (
+                <div style={{ padding: '1.5rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '20px', border: '1px solid #333', marginBottom: '2rem' }}>
+                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Invite your Crew</h3>
+                    <div style={{ display: 'flex', overflowX: 'auto', gap: '12px', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+                        {friends.map(friend => {
+                            const isInvited = event.participants.some(p => p.uid === friend.uid);
+                            return (
+                                <div key={friend.uid} style={{
+                                    minWidth: '90px', background: isInvited ? 'rgba(53, 78, 65, 0.2)' : '#222', padding: '12px 8px', borderRadius: '16px',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.username}</div>
+                                    <button
+                                        disabled={isInvited}
+                                        onClick={() => handleInvite(friend)}
+                                        style={{
+                                            border: 'none', background: isInvited ? 'transparent' : 'var(--jager-orange)',
+                                            color: isInvited ? 'var(--jager-green)' : 'black',
+                                            padding: '6px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 'bold', width: '100%'
+                                        }}
+                                    >
+                                        {isInvited ? 'Added' : 'Add'}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        {friends.length === 0 && <p style={{ fontSize: '0.8rem', color: '#666' }}>No friends found.</p>}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

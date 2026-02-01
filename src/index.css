@@ -11,13 +11,6 @@
   font-family: 'Inter', system-ui, sans-serif;
   line-height: 1.5;
   color: var(--text-primary);
-  background-color: var(--jager-dark);
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
 }
 
 body {
@@ -27,6 +20,14 @@ body {
   background: radial-gradient(circle at top center, #1a2e26 0%, var(--jager-dark) 60%);
   display: flex;
   justify-content: center;
+  padding-bottom: 90px;
+  /* Space for bottom nav */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 #root {
@@ -94,34 +95,43 @@ h1 {
   color: var(--text-primary);
 }
 
-/* --- Navigation Top Pill --- */
 .nav-bar {
   display: flex;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 6px;
-  border-radius: 16px;
-  margin-bottom: 2.5rem;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  gap: 4px;
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 8px 12px;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 448px;
+  border-radius: 24px;
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  gap: 8px;
 }
 
 .nav-item {
   flex: 1;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
-  padding: 12px 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  border-radius: 12px;
+  color: #666;
+  padding: 10px 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 16px;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease-out;
+  gap: 4px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 2;
   -webkit-tap-highlight-color: transparent;
@@ -132,9 +142,13 @@ h1 {
 }
 
 .nav-item.active {
-  color: var(--jager-dark);
-  background: var(--jager-orange);
-  box-shadow: 0 4px 12px rgba(251, 177, 36, 0.3);
+  color: var(--jager-orange);
+  background: rgba(251, 177, 36, 0.05);
+}
+
+.nav-item.active svg {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 8px rgba(251, 177, 36, 0.5));
 }
 
 /* --- Stats Grid --- */

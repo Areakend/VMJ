@@ -179,15 +179,15 @@ function App() {
     if (currentUser) {
       const unsubDrinks = subscribeToDrinks(currentUser.uid, setDrinks);
       const unsubFriends = subscribeToFriends(currentUser.uid, setFriends);
-      // const unsubRequest = subscribeToRequests(currentUser.uid, setRequests);
-      // const unsubEvents = subscribeToMyEvents(currentUser.uid, (events) => {
-      //   // Check for active event
-      //   const active = events.filter(e => {
-      //     const me = e.participants?.find(p => p.uid === currentUser.uid);
-      //     return me?.status === 'active';
-      //   });
-      //   setActiveEvents(active);
-      // });
+      const unsubRequest = subscribeToRequests(currentUser.uid, setRequests);
+      const unsubEvents = subscribeToMyEvents(currentUser.uid, (events) => {
+        // Check for active event
+        const active = events.filter(e => {
+          const me = e.participants?.find(p => p.uid === currentUser.uid);
+          return me?.status === 'active';
+        });
+        setActiveEvents(active);
+      });
 
       saveFcmToken(currentUser.uid).then(token => {
         if (token && Capacitor.getPlatform() !== 'web') {
@@ -198,8 +198,8 @@ function App() {
       return () => {
         unsubDrinks();
         unsubFriends();
-        // unsubRequest();
-        // unsubEvents();
+        unsubRequest();
+        unsubEvents();
       };
     }
   }, [currentUser]);
@@ -391,6 +391,18 @@ function App() {
       };
 
       await addDrink(currentUser.uid, newDrink, userData?.username || "A friend", selectedBuddies);
+
+      // --- Add to active events ---
+      if (activeEvents.length > 0) {
+        for (const ev of activeEvents) {
+          try {
+            await addEventDrink(ev.id, currentUser.uid, userData.username, newDrink);
+          } catch (evErr) {
+            console.warn("Field to add to event", ev.id, evErr);
+          }
+        }
+      }
+
       setDrinkComment(""); // Reset comment
       setSelectedBuddies([]); // Reset buddies
 
