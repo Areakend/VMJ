@@ -180,14 +180,14 @@ function App() {
       const unsubDrinks = subscribeToDrinks(currentUser.uid, setDrinks);
       const unsubFriends = subscribeToFriends(currentUser.uid, setFriends);
       // const unsubRequest = subscribeToRequests(currentUser.uid, setRequests);
-      const unsubEvents = subscribeToMyEvents(currentUser.uid, (events) => {
-        // Check for active event
-        const active = events.filter(e => {
-          const me = e.participants?.find(p => p.uid === currentUser.uid);
-          return me?.status === 'active';
-        });
-        setActiveEvents(active);
-      });
+      // const unsubEvents = subscribeToMyEvents(currentUser.uid, (events) => {
+      //   // Check for active event
+      //   const active = events.filter(e => {
+      //     const me = e.participants?.find(p => p.uid === currentUser.uid);
+      //     return me?.status === 'active';
+      //   });
+      //   setActiveEvents(active);
+      // });
 
       saveFcmToken(currentUser.uid).then(token => {
         if (token && Capacitor.getPlatform() !== 'web') {
@@ -199,7 +199,7 @@ function App() {
         unsubDrinks();
         unsubFriends();
         // unsubRequest();
-        unsubEvents();
+        // unsubEvents();
       };
     }
   }, [currentUser]);
