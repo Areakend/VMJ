@@ -208,7 +208,7 @@ export default function Friends() {
                         onClick={async () => {
                             const base = (window.location.origin && !window.location.origin.includes('localhost'))
                                 ? window.location.origin
-                                : 'https://vitemonjager.vercel.app';
+                                : 'https://quiet-heliotrope-f4ea50.netlify.app';
                             const link = `${base}/add-friend?username=${userData.username}`;
                             const title = 'Join my Jäger Crew!';
                             const text = `Add me on Jäger Tracker: ${userData.username}`;

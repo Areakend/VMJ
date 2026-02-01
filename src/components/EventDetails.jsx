@@ -81,7 +81,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
     const handleShareEvent = async () => {
         const base = (window.location.origin && !window.location.origin.includes('localhost'))
             ? window.location.origin
-            : 'https://vitemonjager.vercel.app';
+            : 'https://quiet-heliotrope-f4ea50.netlify.app';
         const link = `${base}/event?id=${eventId}`;
         const title = `Join our Jäger Event: ${event.title}`;
         const text = `Click to join "${event.title}" on Jäger Tracker!`;
