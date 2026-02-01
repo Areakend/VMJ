@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink } from '../utils/events';
 import { format } from 'date-fns';
-import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2 } from 'lucide-react';
+import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
@@ -79,7 +79,10 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
     };
 
     const handleShareEvent = async () => {
-        const link = `https://vitemonjager.vercel.app/event?id=${eventId}`;
+        const base = (window.location.origin && !window.location.origin.includes('localhost'))
+            ? window.location.origin
+            : 'https://vitemonjager.vercel.app';
+        const link = `${base}/event?id=${eventId}`;
         const title = `Join our Jäger Event: ${event.title}`;
         const text = `Click to join "${event.title}" on Jäger Tracker!`;
 
@@ -88,7 +91,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 await Share.share({
                     title,
                     text: `${text} ${link}`,
-                    url: link,
+                    url: `vitemonjager://event?id=${eventId}`,
                     dialogTitle: 'Share Event',
                 });
             } else if (navigator.share) {

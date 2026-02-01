@@ -383,6 +383,64 @@ function App() {
     };
   }, [currentUser, userData]);
 
+  // --- Browser URL Parameter Handling ---
+  useEffect(() => {
+    if (!currentUser || !userData?.username) return;
+
+    const handleWebLink = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const targetUsername = params.get('username');
+      const eventIdForLink = params.get('id');
+      const path = window.location.pathname;
+
+      // Handle path-based links if they occur (e.g. /event?id=...)
+      let effectiveEventId = eventIdForLink;
+      if (!effectiveEventId && path.includes('/event')) {
+        effectiveEventId = params.get('id'); // Still check params
+      }
+
+      // Try to trigger the native app if we are on mobile web
+      if ((targetUsername || effectiveEventId) && !Capacitor.isNativePlatform()) {
+        const appScheme = targetUsername
+          ? `vitemonjager://add-friend?username=${targetUsername}`
+          : `vitemonjager://event?id=${effectiveEventId}`;
+
+        // Silent attempt to open the app
+        window.location.href = appScheme;
+
+        // If we stay here, it means the app isn't installed or didn't trigger, 
+        // we continue with the web handling below.
+      }
+
+      if (targetUsername && targetUsername !== userData.username) {
+        const confirmAdd = confirm(`Add ${targetUsername} as a drinking buddy?`);
+        if (confirmAdd) {
+          try {
+            await sendFriendRequest(currentUser.uid, userData.username, targetUsername);
+            alert(`Friend request sent to ${targetUsername}!`);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (e) {
+            alert(e.message === 'Already friends' ? `Already friends with ${targetUsername}` : `Error: ${e.message}`);
+          }
+        }
+      }
+
+      if (effectiveEventId) {
+        const confirmJoin = confirm("Join this Jäger event?");
+        if (confirmJoin) {
+          const { inviteToEvent } = await import('./utils/events');
+          await inviteToEvent(effectiveEventId, currentUser.uid, userData.username);
+          setSelectedEventId(effectiveEventId);
+          setView('events');
+          alert("Joined event!");
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    };
+
+    handleWebLink();
+  }, [currentUser, userData]);
+
   if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   if (!currentUser) return <Login />;
   if (!userData?.username) return <UsernameSetup />;

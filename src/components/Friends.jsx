@@ -206,7 +206,10 @@ export default function Friends() {
                     <h3 style={{ color: 'var(--jager-orange)', margin: 0 }}>Find a Drinking Buddy</h3>
                     <button
                         onClick={async () => {
-                            const link = `https://vitemonjager.vercel.app/add-friend?username=${userData.username}`;
+                            const base = (window.location.origin && !window.location.origin.includes('localhost'))
+                                ? window.location.origin
+                                : 'https://vitemonjager.vercel.app';
+                            const link = `${base}/add-friend?username=${userData.username}`;
                             const title = 'Join my Jäger Crew!';
                             const text = `Add me on Jäger Tracker: ${userData.username}`;
 
@@ -215,7 +218,7 @@ export default function Friends() {
                                     await Share.share({
                                         title,
                                         text: `${text} ${link}`,
-                                        url: link,
+                                        url: `vitemonjager://add-friend?username=${userData.username}`,
                                         dialogTitle: 'Share your profile',
                                     });
                                 } else if (navigator.share) {
