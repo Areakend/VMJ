@@ -179,7 +179,7 @@ function App() {
     if (currentUser) {
       const unsubDrinks = subscribeToDrinks(currentUser.uid, setDrinks);
       const unsubFriends = subscribeToFriends(currentUser.uid, setFriends);
-      const unsubRequest = subscribeToRequests(currentUser.uid, setRequests);
+      // const unsubRequest = subscribeToRequests(currentUser.uid, setRequests);
       const unsubEvents = subscribeToMyEvents(currentUser.uid, (events) => {
         // Check for active event
         const active = events.filter(e => {
@@ -198,7 +198,7 @@ function App() {
       return () => {
         unsubDrinks();
         unsubFriends();
-        unsubRequest();
+        // unsubRequest();
         unsubEvents();
       };
     }
