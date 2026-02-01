@@ -206,16 +206,39 @@ export default function Friends() {
                     <h3 style={{ color: 'var(--jager-orange)', margin: 0 }}>Find a Drinking Buddy</h3>
                     <button
                         onClick={async () => {
+                            const base = (window.location.origin && !window.location.origin.includes('localhost'))
+                                ? window.location.origin
+                                : 'https://quiet-heliotrope-f4ea50.netlify.app';
+                            const link = `${base}/add-friend?username=${userData.username}`;
+                            const title = 'Join my Jäger Crew!';
+                            const text = `Add me on Jäger Tracker: ${userData.username}`;
+
                             try {
-                                const link = `vitemonjager://add-friend?username=${userData.username}`;
-                                await Share.share({
-                                    title: 'Join my Jäger Crew!',
-                                    text: `Add me on Jäger Tracker: ${userData.username}`,
-                                    url: link,
-                                    dialogTitle: 'Share your profile',
-                                });
+                                if (Capacitor.isNativePlatform()) {
+                                    await Share.share({
+                                        title,
+                                        text: `${text} ${link}`,
+                                        url: `vitemonjager://add-friend?username=${userData.username}`,
+                                        dialogTitle: 'Share your profile',
+                                    });
+                                } else if (navigator.share) {
+                                    await navigator.share({
+                                        title,
+                                        text: `${text} ${link}`,
+                                        url: link,
+                                    });
+                                } else {
+                                    throw new Error('Web Share not supported');
+                                }
                             } catch (e) {
-                                console.log('Share dismissed');
+                                console.log('Share failed or dismissed, trying clipboard', e);
+                                try {
+                                    await navigator.clipboard.writeText(`${text} ${link}`);
+                                    alert("Profile link copied to clipboard! 🦌");
+                                } catch (err) {
+                                    console.error('Clipboard failed', err);
+                                    alert(`Your Profile Link: ${link}`);
+                                }
                             }
                         }}
                         style={{
@@ -352,7 +375,7 @@ export default function Friends() {
                                 >
                                     <Trash2 size={18} color="#666" />
                                 </button>
-                                <ChevronRight size={18} color="#444" />
+                                {ChevronRight && <ChevronRight size={18} color="#444" />}
                             </div>
                         </li>
                     ))}

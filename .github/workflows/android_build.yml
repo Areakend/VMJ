@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - dev-ui-overhaul
 
 jobs:
   build:
@@ -55,28 +56,33 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Rename APK
-        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/vitemonjager-beta.apk
+        run: |
+          if [ "${{ github.ref_name }}" == "main" ] || [ "${{ github.ref_name }}" == "master" ]; then
+            mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/vitemonjager-beta.apk
+            echo "APK_NAME=vitemonjager-beta.apk" >> $GITHUB_ENV
+            echo "RELEASE_TAG=v0.1-beta" >> $GITHUB_ENV
+            echo "RELEASE_NAME=Jäger Tracker v0.1-beta" >> $GITHUB_ENV
+            echo "IS_LATEST=true" >> $GITHUB_ENV
+          else
+            mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/vitemonjager-dev.apk
+            echo "APK_NAME=vitemonjager-dev.apk" >> $GITHUB_ENV
+            echo "RELEASE_TAG=dev-latest" >> $GITHUB_ENV
+            echo "RELEASE_NAME=Jäger Tracker (DEV BUILD)" >> $GITHUB_ENV
+            echo "IS_LATEST=false" >> $GITHUB_ENV
+          fi
 
       - name: Create Release and Upload APK
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "android/app/build/outputs/apk/debug/vitemonjager-beta.apk"
-          tag: "v0.1-beta"
-          name: "Jäger Tracker v0.1-beta"
+          artifacts: "android/app/build/outputs/apk/debug/${{ env.APK_NAME }}"
+          tag: "${{ env.RELEASE_TAG }}"
+          name: "${{ env.RELEASE_NAME }}"
           body: |
-            ## Beta 0.1 Release
-            All the latest patches are now live!
-            
-            ### ✨ Highlights
-            - **Map Friend Locations** (v0.1)
-            - **Background Push Notifications** (v0.1)
-            - **English Localization & Security Patches** (v0.1)
+            ## Build from branch: ${{ github.ref_name }}
+            This is an automated build for testing purposes.
             
             [View Full Changelog](https://github.com/Areakend/VMJ/blob/main/CHANGELOG.md)
             
-            Auto-generated build. Cheers! 🥂
+            Cheers! 🥂
           allowUpdates: true
-          makeLatest: true
-
-
-
+          makeLatest: ${{ env.IS_LATEST }}

@@ -26,6 +26,15 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="vitemonjager" />
             </intent-filter>
+
+            <!-- App Links: https://quiet-heliotrope-f4ea50.netlify.app -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="quiet-heliotrope-f4ea50.netlify.app" />
+                <data android:scheme="http" />
+            </intent-filter>
         </activity>
 
         <provider

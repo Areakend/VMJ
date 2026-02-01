@@ -81,7 +81,7 @@ export default function JagerRoulette({ participants, onClose }) {
             <button
                 onClick={onClose}
                 style={{
-                    position: 'absolute', top: 20, right: 20,
+                    position: 'absolute', top: 'calc(20px + env(safe-area-inset-top))', right: 20,
                     background: 'none', border: 'none', color: 'white', cursor: 'pointer'
                 }}
             >

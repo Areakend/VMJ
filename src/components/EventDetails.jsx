@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { inviteToEvent, toggleEventStatus } from '../utils/events';
+import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink, removeParticipant } from '../utils/events';
 import { format } from 'date-fns';
-import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus } from 'lucide-react';
+import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
@@ -57,17 +57,71 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
         }
     };
 
-    const handleShareEvent = async () => {
+    const handleGlobalStatus = async (status) => {
+        if (!window.confirm(`Are you sure you want to ${status === 'open' ? 're-open' : 'close'} this event for everyone?`)) return;
         try {
-            const link = `vitemonjager://event?id=${eventId}`;
-            await Share.share({
-                title: `Join our Jäger Event: ${event.title}`,
-                text: `Click to join "${event.title}" on Jäger Tracker!`,
-                url: link,
-                dialogTitle: 'Share Event',
-            });
+            await setEventStatus(eventId, status);
         } catch (e) {
-            console.log('Share dismissed');
+            console.error(e);
+            alert("Failed to update global status");
+        }
+    };
+
+    const handleDeleteEvent = async () => {
+        if (!window.confirm("CRITICAL: Delete this event and all its shot records? This cannot be undone.")) return;
+        try {
+            await deleteEvent(eventId);
+            onBack();
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete event");
+        }
+    };
+
+    const handleShareEvent = async () => {
+        const base = (window.location.origin && !window.location.origin.includes('localhost'))
+            ? window.location.origin
+            : 'https://quiet-heliotrope-f4ea50.netlify.app';
+        const link = `${base}/event?id=${eventId}`;
+        const title = `Join our Jäger Event: ${event.title}`;
+        const text = `Click to join "${event.title}" on Jäger Tracker!`;
+
+        try {
+            if (Capacitor.isNativePlatform()) {
+                await Share.share({
+                    title,
+                    text: `${text} ${link}`,
+                    url: `vitemonjager://event?id=${eventId}`,
+                    dialogTitle: 'Share Event',
+                });
+            } else if (navigator.share) {
+                await navigator.share({
+                    title,
+                    text: `${text} ${link}`,
+                    url: link,
+                });
+            } else {
+                throw new Error('Web Share not supported');
+            }
+        } catch (e) {
+            console.log('Share failed or dismissed, trying clipboard', e);
+            try {
+                await navigator.clipboard.writeText(`${text} ${link}`);
+                alert("Link copied to clipboard! 🦌");
+            } catch (err) {
+                console.error('Clipboard failed', err);
+                alert(`Event Link: ${link}`);
+            }
+        }
+    };
+
+    const handleRemoveParticipant = async (participant) => {
+        if (!window.confirm(`Kick ${participant.username} from the event?`)) return;
+        try {
+            await removeParticipant(eventId, participant.uid);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to remove participant");
         }
     };
 
@@ -77,7 +131,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 timestamp: Date.now(),
                 volume: 2,
                 comment: "Event Shot! 🦌",
-                eventId: eventId
+                eventIds: [eventId]
             };
             await addEventDrink(eventId, currentUser.uid, userData.username, shot);
             // Also add to personal log for consistency
@@ -96,8 +150,16 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
 
     // Calculate Leaderboard
     const leaderboard = {};
+    // Initialize all participants with 0
+    event.participants?.forEach(p => {
+        leaderboard[p.uid] = { uid: p.uid, username: p.username, shots: 0, volume: 0 };
+    });
+
     eventDrinks.forEach(d => {
-        if (!leaderboard[d.uid]) leaderboard[d.uid] = { username: d.username, shots: 0, volume: 0 };
+        if (!leaderboard[d.uid]) {
+            // Should not happen for registered participants but handle for safety
+            leaderboard[d.uid] = { uid: d.uid, username: d.username, shots: 0, volume: 0 };
+        }
         leaderboard[d.uid].shots += 1;
         leaderboard[d.uid].volume += d.volume || 0;
     });
@@ -118,7 +180,17 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 borderRadius: '24px', padding: '1.5rem', marginBottom: '1.5rem',
                 border: '1px solid #333', boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
             }}>
-                <h1 style={{ margin: 0, fontSize: '2rem', marginBottom: '0.5rem' }}>{event.title}</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <h1 style={{ margin: 0, fontSize: '2rem' }}>{event.title}</h1>
+                    {event.creator.uid === currentUser.uid && (
+                        <button
+                            onClick={handleDeleteEvent}
+                            style={{ background: 'rgba(255,0,0,0.1)', border: 'none', color: '#ff4444', padding: '8px', borderRadius: '12px' }}
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                    )}
+                </div>
                 <p style={{ color: '#888', margin: 0, marginBottom: '1.5rem' }}>{format(new Date(event.date), "EEEE, MMMM do, h:mm a")}</p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -166,7 +238,9 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
 
                 <div style={{ borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontWeight: 'bold' }}>My Satus:</span>
+                        <span style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            My Status: {amIActive ? <CheckCircle size={16} color="var(--jager-green)" /> : <UserPlus size={16} color="#444" />}
+                        </span>
                         <button
                             onClick={() => handleToggleStatus(!amIActive)}
                             style={{
@@ -176,12 +250,27 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                             }}
                         >
                             {amIActive ? <Unlock size={16} /> : <Lock size={16} />}
-                            {amIActive ? 'Open (Drinking)' : 'Closed'}
+                            {amIActive ? 'Open' : 'Closed'}
                         </button>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0 }}>
-                        {amIActive ? "Drinks you add will be tagged to this event." : "Drinks you add currently go to your personal log only."}
-                    </p>
+
+                    {/* Global Control for Creator */}
+                    {event.creator.uid === currentUser.uid && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid #222', paddingTop: '1rem' }}>
+                            <span style={{ fontWeight: 'bold', color: '#888', fontSize: '0.9rem' }}>Global (Admin):</span>
+                            <button
+                                onClick={() => handleGlobalStatus(event.status === 'open' ? 'closed' : 'open')}
+                                style={{
+                                    background: event.status === 'open' ? 'rgba(251, 177, 36, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                                    color: event.status === 'open' ? 'var(--jager-orange)' : '#666',
+                                    border: '1px solid', borderColor: event.status === 'open' ? 'var(--jager-orange)' : '#444',
+                                    padding: '6px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold'
+                                }}
+                            >
+                                {event.status === 'open' ? 'Lock Event' : 'Unlock'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -223,42 +312,78 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                             </div>
                             <span style={{ fontWeight: 'bold' }}>{user.username}</span>
                         </div>
-                        <div style={{ fontWeight: 'bold', color: 'var(--jager-orange)' }}>
-                            {user.shots} shots
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ fontWeight: 'bold', color: 'var(--jager-orange)' }}>
+                                {user.shots} shots
+                            </div>
+                            {event.creator.uid === currentUser.uid && user.uid !== currentUser.uid && (
+                                <button
+                                    onClick={() => handleRemoveParticipant({ uid: user.uid, username: user.username })}
+                                    style={{ background: 'transparent', border: 'none', color: '#ff4444', padding: '4px', display: 'flex' }}
+                                    title="Remove from event"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}
                 {sortedLeaderboard.length === 0 && <p style={{ color: '#666', textAlign: 'center' }}>No drinks yet.</p>}
             </div>
 
-            {/* Invite Section (Conditional) */}
+            {/* Invite Modal Section */}
             {showInvite && (
-                <div style={{ padding: '1.5rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '20px', border: '1px solid #333', marginBottom: '2rem' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Invite your Crew</h3>
-                    <div style={{ display: 'flex', overflowX: 'auto', gap: '12px', paddingBottom: '8px', scrollbarWidth: 'none' }}>
-                        {friends.map(friend => {
-                            const isInvited = event.participants.some(p => p.uid === friend.uid);
-                            return (
-                                <div key={friend.uid} style={{
-                                    minWidth: '90px', background: isInvited ? 'rgba(53, 78, 65, 0.2)' : '#222', padding: '12px 8px', borderRadius: '16px',
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.username}</div>
-                                    <button
-                                        disabled={isInvited}
-                                        onClick={() => handleInvite(friend)}
-                                        style={{
-                                            border: 'none', background: isInvited ? 'transparent' : 'var(--jager-orange)',
-                                            color: isInvited ? 'var(--jager-green)' : 'black',
-                                            padding: '6px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 'bold', width: '100%'
-                                        }}
-                                    >
-                                        {isInvited ? 'Added' : 'Add'}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {friends.length === 0 && <p style={{ fontSize: '0.8rem', color: '#666' }}>No friends found.</p>}
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+                    padding: '1.5rem', backdropFilter: 'blur(5px)'
+                }}>
+                    <div style={{
+                        background: '#1c1c1c', width: '100%', maxWidth: '340px', borderRadius: '24px',
+                        padding: '1.5rem', border: '1px solid #333', boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--jager-orange)' }}>Invite your Crew</h3>
+                            <button onClick={() => setShowInvite(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '5px' }}>
+                            {friends.map(friend => {
+                                const isInvited = event.participants.some(p => p.uid === friend.uid);
+                                return (
+                                    <div key={friend.uid} style={{
+                                        background: isInvited ? 'rgba(53, 78, 65, 0.2)' : '#222', padding: '12px 8px', borderRadius: '16px',
+                                        textAlign: 'center', border: isInvited ? '1px solid var(--jager-green)' : '1px solid transparent'
+                                    }}>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.username}</div>
+                                        <button
+                                            disabled={isInvited}
+                                            onClick={() => handleInvite(friend)}
+                                            style={{
+                                                border: 'none', background: isInvited ? 'transparent' : 'var(--jager-orange)',
+                                                color: isInvited ? 'var(--jager-green)' : 'black',
+                                                padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 'bold', width: '100%'
+                                            }}
+                                        >
+                                            {isInvited ? 'Added' : 'Add'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {friends.length === 0 && <p style={{ textAlign: 'center', color: '#666', margin: '2rem 0' }}>No friends found.</p>}
+
+                        <button
+                            onClick={() => setShowInvite(false)}
+                            style={{
+                                width: '100%', marginTop: '1.5rem', padding: '12px', background: '#333', color: 'white',
+                                border: 'none', borderRadius: '12px', fontWeight: 'bold'
+                            }}
+                        >
+                            Done
+                        </button>
                     </div>
                 </div>
             )}
