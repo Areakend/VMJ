@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2 } from 'lucide-react'
+import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
@@ -10,7 +10,10 @@ import UsernameSetup from './components/UsernameSetup'
 import Friends from './components/Friends'
 import DrinkMap from './components/DrinkMap'
 import MapFilter from './components/MapFilter'
+import EventsView from './components/EventsView'
+import EventDetails from './components/EventDetails'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest } from './utils/storage'
+import { addEventDrink, subscribeToMyEvents } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
@@ -149,7 +152,7 @@ function App() {
   const [drinks, setDrinks] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [view, setView] = useState('tracker'); // 'tracker', 'map', 'friends'
+  const [view, setView] = useState('home'); // home, map, friends, events
   const [volume, setVolume] = useState(2); // 2, 4, 8, 12
   const [locationState, setLocationState] = useState(null);
   const [editingDrink, setEditingDrink] = useState(null);
@@ -163,26 +166,40 @@ function App() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const fileInputRef = useRef(null);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [activeEvents, setActiveEvents] = useState([]); // Events where I am status='active'
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
   }, []);
 
+  // --- Subscriptions ---
   useEffect(() => {
     if (currentUser) {
-      const unsubscribe = subscribeToDrinks(currentUser.uid, (data) => {
-        setDrinks(data);
+      const unsubDrinks = subscribeToDrinks(currentUser.uid, setDrinks);
+      const unsubFriends = subscribeToFriends(currentUser.uid, setFriends);
+      const unsubRequest = subscribeToRequests(currentUser.uid, setRequests);
+      const unsubEvents = subscribeToMyEvents(currentUser.uid, (events) => {
+        // Check for active event
+        const active = events.filter(e => {
+          const me = e.participants?.find(p => p.uid === currentUser.uid);
+          return me?.status === 'active';
+        });
+        setActiveEvents(active);
       });
-      const unsubFriends = subscribeToFriends(currentUser.uid, (data) => {
-        setFriends(data);
+
+      saveFcmToken(currentUser.uid).then(token => {
+        if (token && Capacitor.getPlatform() !== 'web') {
+          saveFcmToken(currentUser.uid, token);
+        }
       });
+
       return () => {
-        unsubscribe();
+        unsubDrinks();
         unsubFriends();
-      }
-    } else {
-      setDrinks([]);
-      setFriends([]);
+        unsubRequest();
+        unsubEvents();
+      };
     }
   }, [currentUser]);
 
@@ -430,6 +447,16 @@ function App() {
                 comment: typeof d.comment === 'string' ? d.comment.slice(0, 100) : null,
                 importedAt: Date.now()
               };
+              // Add to event(s) if active
+              if (activeEvents.length > 0) {
+                // Add to the first active event (or all?)
+                // "User can open or close it for himself" implies one active focus, or multiple.
+                // Let's add to all active events to be safe/powerful.
+                for (const ev of activeEvents) {
+                  await addEventDrink(ev.id, currentUser.uid, userData.username, dToSave);
+                }
+              }
+
               await addDrink(currentUser.uid, dToSave, userData?.username || "A friend");
               count++;
             }
