@@ -191,7 +191,25 @@ export const deleteEvent = async (eventId) => {
 export const setEventStatus = async (eventId, status) => {
     try {
         const eventRef = doc(db, "events", eventId);
-        await updateDoc(eventRef, { status });
+
+        await runTransaction(db, async (transaction) => {
+            const eventDoc = await transaction.get(eventRef);
+            if (!eventDoc.exists()) throw "Event does not exist";
+
+            const data = eventDoc.data();
+            const updateData = { status };
+
+            // Cascade set participants to 'inactive' if closing globally
+            if (status === 'closed' && data.participants) {
+                updateData.participants = data.participants.map(p => ({
+                    ...p,
+                    status: 'inactive'
+                }));
+            }
+
+            transaction.update(eventRef, updateData);
+        });
+
         return true;
     } catch (e) {
         console.error("Error updating event status:", e);

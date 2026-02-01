@@ -419,6 +419,9 @@ function App() {
       // --- Sync to active events ---
       if (activeEvents.length > 0) {
         for (const ev of activeEvents) {
+          // Skip if event is globally closed
+          if (ev.status === 'closed') continue;
+
           try {
             // 1. Add my shot to event
             await addEventDrink(ev.id, currentUser.uid, userData.username, newDrink);
@@ -830,11 +833,16 @@ function App() {
             {selectedBuddies.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
                 {selectedBuddies.map(b => (
-                  <span key={b.uid} style={{
-                    fontSize: '0.75rem', background: 'rgba(251, 177, 36, 0.1)',
-                    color: '#fbb124', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(251, 177, 36, 0.2)'
-                  }}>
-                    {b.username}
+                  <span
+                    key={b.uid}
+                    onClick={() => setSelectedBuddies(selectedBuddies.filter(buddy => buddy.uid !== b.uid))}
+                    style={{
+                      fontSize: '0.75rem', background: 'rgba(251, 177, 36, 0.1)',
+                      color: '#fbb124', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(251, 177, 36, 0.2)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {b.username} &times;
                   </span>
                 ))}
               </div>
