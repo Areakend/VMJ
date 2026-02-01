@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - dev-ui-overhaul
 
 jobs:
   build:
