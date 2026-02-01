@@ -3,7 +3,7 @@ import { subscribeToMyEvents, createEvent } from '../utils/events';
 import { Calendar, Plus, Users, ChevronRight, Trophy } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function EventsView({ currentUser, userData, friends }) {
+export default function EventsView({ currentUser, userData, friends, onSelectEvent }) {
     const [events, setEvents] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
 
@@ -102,14 +102,21 @@ export default function EventsView({ currentUser, userData, friends }) {
                     </div>
                 ) : (
                     events.map(event => (
-                        <div key={event.id} style={{
-                            background: '#1c1c1c',
-                            borderRadius: '16px',
-                            padding: '1.2rem',
-                            border: '1px solid #333',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}>
+                        <div key={event.id}
+                            onClick={() => onSelectEvent(event.id)}
+                            style={{
+                                background: '#1c1c1c',
+                                borderRadius: '16px',
+                                padding: '1.2rem',
+                                border: '1px solid #333',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                transition: 'transform 0.2s',
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{event.title}</h3>
