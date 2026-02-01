@@ -1,20 +1,33 @@
 import { useState } from 'react';
-import { Search, X, Users, Check, Square } from 'lucide-react';
+import { Search, X, Users, Check } from 'lucide-react';
 
-export default function CrewSelector({ friends, selectedBuddies, onToggle, onClose }) {
+export default function CrewSelector({
+    friends,
+    selectedBuddies,
+    onToggle,
+    onClose,
+    title = "Select Crew",
+    includeMe = false,
+    currentUserId = null,
+    currentUsername = "Me"
+}) {
     const [search, setSearch] = useState('');
 
-    const filteredFriends = friends.filter(f =>
+    const allOptions = includeMe
+        ? [{ uid: currentUserId, username: currentUsername }, ...friends]
+        : friends;
+
+    const filteredOptions = allOptions.filter(f =>
         f.username.toLowerCase().includes(search.toLowerCase())
     );
 
     const isSelected = (uid) => selectedBuddies.some(b => b.uid === uid);
 
     const handleToggleAll = () => {
-        if (selectedBuddies.length === friends.length) {
+        if (selectedBuddies.length === allOptions.length) {
             onToggle([]); // Clear
         } else {
-            onToggle(friends.map(f => ({ uid: f.uid, username: f.username })));
+            onToggle(allOptions.map(f => ({ uid: f.uid, username: f.username })));
         }
     };
 
@@ -31,9 +44,9 @@ export default function CrewSelector({ friends, selectedBuddies, onToggle, onClo
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, color: 'var(--jager-orange)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Users size={20} /> Select Crew
+                        <Users size={20} /> {title}
                     </h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666' }}>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>
                         <X size={24} />
                     </button>
                 </div>
@@ -55,47 +68,51 @@ export default function CrewSelector({ friends, selectedBuddies, onToggle, onClo
                         onClick={handleToggleAll}
                         style={{
                             flex: 1, padding: '8px', borderRadius: '10px', background: '#333', border: 'none',
-                            color: 'white', fontSize: '0.8rem', fontWeight: 'bold'
+                            color: 'white', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer'
                         }}
                     >
-                        {selectedBuddies.length === friends.length ? 'Clear All' : 'Select All'}
+                        {selectedBuddies.length === allOptions.length ? 'Clear All' : 'Select All'}
                     </button>
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem', paddingRight: '4px' }}>
-                    {filteredFriends.map(friend => {
-                        const active = isSelected(friend.uid);
+                    {filteredOptions.map(option => {
+                        const active = isSelected(option.uid);
                         return (
                             <div
-                                key={friend.uid}
+                                key={option.uid}
                                 onClick={() => {
                                     if (active) {
-                                        onToggle(selectedBuddies.filter(b => b.uid !== friend.uid));
+                                        onToggle(selectedBuddies.filter(b => b.uid !== option.uid));
                                     } else {
-                                        onToggle([...selectedBuddies, { uid: friend.uid, username: friend.username }]);
+                                        onToggle([...selectedBuddies, { uid: option.uid, username: option.username }]);
                                     }
                                 }}
                                 style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                     padding: '12px', borderRadius: '12px', background: active ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
                                     cursor: 'pointer', border: '1px solid', borderColor: active ? '#fbb124' : 'transparent',
-                                    marginBottom: '4px'
+                                    marginBottom: '4px', transition: 'all 0.2s'
                                 }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <div style={{
-                                        width: '32px', height: '32px', borderRadius: '50%', background: '#444',
+                                        width: '32px', height: '32px', borderRadius: '50%',
+                                        background: option.uid === currentUserId ? 'var(--jager-orange)' : '#444',
+                                        color: option.uid === currentUserId ? 'black' : 'white',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold'
                                     }}>
-                                        {friend.username.charAt(0).toUpperCase()}
+                                        {option.username.charAt(0).toUpperCase()}
                                     </div>
-                                    <span style={{ color: active ? 'white' : '#888' }}>{friend.username}</span>
+                                    <span style={{ color: active ? 'white' : '#888', fontWeight: active ? '600' : '400' }}>
+                                        {option.username} {option.uid === currentUserId ? "(You)" : ""}
+                                    </span>
                                 </div>
                                 {active ? <Check size={18} color="#fbb124" /> : <div style={{ width: 18, height: 18, border: '1px solid #444', borderRadius: '4px' }} />}
                             </div>
                         )
                     })}
-                    {filteredFriends.length === 0 && <p style={{ textAlign: 'center', color: '#666', marginTop: '1rem' }}>No matching friends.</p>}
+                    {filteredOptions.length === 0 && <p style={{ textAlign: 'center', color: '#666', marginTop: '1rem' }}>No matches found.</p>}
                 </div>
 
                 <button

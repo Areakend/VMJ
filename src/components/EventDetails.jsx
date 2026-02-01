@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink } from '../utils/events';
+import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink, removeParticipant } from '../utils/events';
 import { format } from 'date-fns';
 import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X } from 'lucide-react';
 import { Share } from '@capacitor/share';
@@ -112,6 +112,16 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 console.error('Clipboard failed', err);
                 alert(`Event Link: ${link}`);
             }
+        }
+    };
+
+    const handleRemoveParticipant = async (participant) => {
+        if (!window.confirm(`Kick ${participant.username} from the event?`)) return;
+        try {
+            await removeParticipant(eventId, participant.uid);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to remove participant");
         }
     };
 
@@ -302,8 +312,19 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                             </div>
                             <span style={{ fontWeight: 'bold' }}>{user.username}</span>
                         </div>
-                        <div style={{ fontWeight: 'bold', color: 'var(--jager-orange)' }}>
-                            {user.shots} shots
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ fontWeight: 'bold', color: 'var(--jager-orange)' }}>
+                                {user.shots} shots
+                            </div>
+                            {event.creator.uid === currentUser.uid && user.uid !== currentUser.uid && (
+                                <button
+                                    onClick={() => handleRemoveParticipant({ uid: user.uid, username: user.username })}
+                                    style={{ background: 'transparent', border: 'none', color: '#ff4444', padding: '4px', display: 'flex' }}
+                                    title="Remove from event"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}

@@ -13,6 +13,7 @@ import MapFilter from './components/MapFilter'
 import EventsView from './components/EventsView'
 import EventDetails from './components/EventDetails'
 import CrewSelector from './components/CrewSelector'
+import CustomVolumeSelector from './components/CustomVolumeSelector'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest, subscribeToRequests } from './utils/storage'
 import { addEventDrink, subscribeToMyEvents, removeEventDrink } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
@@ -160,17 +161,20 @@ function App() {
   const [notifPermission, setNotifPermission] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
-  const [selectedMapUids, setSelectedMapUids] = useState([]);
+  const [selectedMapFilterBuddies, setSelectedMapFilterBuddies] = useState([]); // Array of {uid, username}
   const [mapDrinks, setMapDrinks] = useState([]);
   const [drinkComment, setDrinkComment] = useState("");
   const [selectedBuddies, setSelectedBuddies] = useState([]); // Array of {uid, username}
-  const [buddyFilter, setBuddyFilter] = useState(null); // UID of buddy to filter by in history
+  const [selectedFilterBuddies, setSelectedFilterBuddies] = useState([]); // Array of {uid, username} for history filter
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const fileInputRef = useRef(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [activeEvents, setActiveEvents] = useState([]); // Events where I am status='active'
   const [showCrewModal, setShowCrewModal] = useState(false);
+  const [showVolumeModal, setShowVolumeModal] = useState(false);
+  const [showActivityFilterModal, setShowActivityFilterModal] = useState(false);
+  const [showMapFilterModal, setShowMapFilterModal] = useState(false);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
@@ -206,26 +210,26 @@ function App() {
     }
   }, [currentUser]);
 
-  // Initial selected UIDs
+  // Initial selected UIDs for Map
   useEffect(() => {
-    if (currentUser && selectedMapUids.length === 0) {
-      setSelectedMapUids([currentUser.uid]);
+    if (currentUser && userData?.username && selectedMapFilterBuddies.length === 0) {
+      setSelectedMapFilterBuddies([{ uid: currentUser.uid, username: userData.username }]);
     }
-  }, [currentUser]);
+  }, [currentUser, userData]);
 
   // Fetch drinks for the map view
   useEffect(() => {
-    if (!currentUser || view !== 'map' || selectedMapUids.length === 0) return;
+    if (!currentUser || view !== 'map' || selectedMapFilterBuddies.length === 0) return;
 
     const unsubs = [];
     const collections = {}; // uid -> drinks[]
 
-    selectedMapUids.forEach(uid => {
-      const unsub = subscribeToDrinks(uid, (userDrinks) => {
-        collections[uid] = userDrinks.map(d => ({
+    selectedMapFilterBuddies.forEach(buddy => {
+      const unsub = subscribeToDrinks(buddy.uid, (userDrinks) => {
+        collections[buddy.uid] = userDrinks.map(d => ({
           ...d,
-          userId: uid,
-          username: uid === currentUser.uid ? userData.username : (friends.find(f => f.uid === uid)?.username || 'Buddy')
+          userId: buddy.uid,
+          username: buddy.username
         }));
 
         // Combine all currently fetched
@@ -236,7 +240,7 @@ function App() {
     });
 
     return () => unsubs.forEach(u => u());
-  }, [view, selectedMapUids, currentUser, friends, userData]);
+  }, [view, selectedMapFilterBuddies, currentUser]);
 
   // Social Notification Listener
   useEffect(() => {
@@ -413,19 +417,25 @@ function App() {
       }
 
       if (targetUsername && targetUsername !== userData.username) {
-        const confirmAdd = confirm(`Add ${targetUsername} as a drinking buddy?`);
-        if (confirmAdd) {
-          try {
-            await sendFriendRequest(currentUser.uid, userData.username, targetUsername);
-            alert(`Friend request sent to ${targetUsername}!`);
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } catch (e) {
-            alert(e.message === 'Already friends' ? `Already friends with ${targetUsername}` : `Error: ${e.message}`);
+        const { validateUsername } = await import('./utils/storage');
+        const error = validateUsername(targetUsername);
+        if (error) {
+          console.warn("Invalid username in link:", targetUsername);
+        } else {
+          const confirmAdd = confirm(`Add ${targetUsername} as a drinking buddy?`);
+          if (confirmAdd) {
+            try {
+              await sendFriendRequest(currentUser.uid, userData.username, targetUsername);
+              alert(`Friend request sent to ${targetUsername}!`);
+              window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {
+              alert(e.message === 'Already friends' ? `Already friends with ${targetUsername}` : `Error: ${e.message}`);
+            }
           }
         }
       }
 
-      if (effectiveEventId) {
+      if (effectiveEventId && effectiveEventId.length >= 10 && effectiveEventId.length <= 50) {
         const confirmJoin = confirm("Join this Jäger event?");
         if (confirmJoin) {
           const { inviteToEvent } = await import('./utils/events');
@@ -621,7 +631,9 @@ function App() {
     const dDate = new Date(d.timestamp);
     const afterStart = !startDate || dDate >= new Date(startDate);
     const beforeEnd = !endDate || dDate <= new Date(endDate);
-    const matchesBuddy = !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter);
+    const matchesBuddy = selectedFilterBuddies.length === 0 ||
+      (d.buddies && d.buddies.some(b => selectedFilterBuddies.some(fb => fb.uid === b.uid))) ||
+      (selectedFilterBuddies.some(fb => fb.uid === d.creatorId));
     return afterStart && beforeEnd && matchesBuddy;
   });
 
@@ -629,8 +641,8 @@ function App() {
   const totalDrinks = drinks.length;
   const totalVolumeCl = drinks.reduce((acc, curr) => acc + (curr.volume || 2), 0);
 
-  // Shared Stats (when buddyFilter is active)
-  const sharedStats = buddyFilter ? {
+  // Shared Stats (when buddy filter is active)
+  const sharedStats = selectedFilterBuddies.length > 0 ? {
     shots: filteredDrinks.length,
     volume: filteredDrinks.reduce((acc, curr) => acc + (curr.volume || 2), 0)
   } : null;
@@ -735,54 +747,69 @@ function App() {
               {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: 'transparent', border: 'none', color: '#fbb124', fontSize: '1.2rem' }}>&times;</button>}
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
+            <div style={{ marginTop: '12px' }}>
               <button
-                onClick={() => setBuddyFilter(null)}
+                onClick={() => setShowMapFilterModal(true)}
                 style={{
-                  padding: '4px 12px', borderRadius: '15px', border: '1px solid',
-                  borderColor: !buddyFilter ? '#fbb124' : '#333',
-                  background: !buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
-                  color: !buddyFilter ? '#fbb124' : '#666',
-                  fontSize: '0.75rem', flexShrink: 0
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer'
                 }}
               >
-                All
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MapIcon size={16} color={selectedMapFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                    {selectedMapFilterBuddies.length > 0
+                      ? `Show activity from ${selectedMapFilterBuddies.length} members`
+                      : 'Select Crew to show on map'}
+                  </span>
+                </div>
+                <ChevronRight size={16} color="#444" />
               </button>
-              {friends.map(f => (
-                <button
-                  key={f.uid}
-                  onClick={() => setBuddyFilter(f.uid === buddyFilter ? null : f.uid)}
-                  style={{
-                    padding: '4px 12px', borderRadius: '15px', border: '1px solid',
-                    borderColor: f.uid === buddyFilter ? '#fbb124' : '#333',
-                    background: f.uid === buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
-                    color: f.uid === buddyFilter ? '#fbb124' : '#666',
-                    fontSize: '0.75rem', flexShrink: 0
-                  }}
-                >
-                  {f.username}
-                </button>
-              ))}
+              {selectedMapFilterBuddies.length > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
+                  {selectedMapFilterBuddies.map(b => (
+                    <span
+                      key={b.uid}
+                      onClick={() => setSelectedMapFilterBuddies(selectedMapFilterBuddies.filter(fb => fb.uid !== b.uid))}
+                      style={{
+                        fontSize: '0.7rem', background: 'rgba(251, 177, 36, 0.08)',
+                        color: '#fbb124', padding: '3px 8px', borderRadius: '10px',
+                        border: '1px solid rgba(251, 177, 36, 0.2)', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '4px'
+                      }}
+                    >
+                      {b.username} &times;
+                    </span>
+                  ))}
+                  <button
+                    onClick={() => setSelectedMapFilterBuddies([])}
+                    style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.7rem', padding: '3px 8px' }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="map-view-container" style={{ position: 'relative' }}>
             <DrinkMap
-              key={view + buddyFilter + startDate + endDate}
+              key={view + selectedMapFilterBuddies.length + startDate + endDate}
               drinks={mapDrinks.filter(d => {
                 const date = new Date(d.timestamp);
                 const afterStart = !startDate || date >= new Date(startDate);
                 const beforeEnd = !endDate || date <= new Date(endDate);
-                const matchesBuddy = !buddyFilter || (d.buddies && d.buddies.some(b => b.uid === buddyFilter)) || (d.creatorId === buddyFilter && d.userId === currentUser.uid);
-                return afterStart && beforeEnd && matchesBuddy;
+                return afterStart && beforeEnd;
               })}
               userLocation={locationState}
-            />
-            <MapFilter
-              friends={friends}
-              selectedUids={selectedMapUids}
-              onToggle={setSelectedMapUids}
-              currentUserId={currentUser.uid}
             />
           </div>
         </div>
@@ -827,7 +854,7 @@ function App() {
           </div>
 
           {/* Volume Selection */}
-          <div className="volume-container">
+          <div className="volume-container" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
             {[2, 4, 8, 12].map(v => (
               <button
                 key={v}
@@ -835,9 +862,17 @@ function App() {
                 className={`volume-btn ${volume === v ? 'active' : ''}`}
               >
                 <span>{v}cl</span>
-                <small>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : 'Dead'}</small>
+                <small style={{ fontSize: '0.6rem' }}>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : 'Dead'}</small>
               </button>
             ))}
+            <button
+              onClick={() => setShowVolumeModal(true)}
+              className={`volume-btn ${![2, 4, 8, 12].includes(volume) ? 'active' : ''}`}
+              style={{ borderStyle: 'dashed' }}
+            >
+              <span>{![2, 4, 8, 12].includes(volume) ? `${volume}cl` : '+'}</span>
+              <small style={{ fontSize: '0.6rem' }}>Custom</small>
+            </button>
           </div>
 
           {/* Comment */}
@@ -924,34 +959,56 @@ function App() {
                 <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
               </div>
 
-              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
+              <div style={{ marginTop: '12px' }}>
                 <button
-                  onClick={() => setBuddyFilter(null)}
+                  onClick={() => setShowActivityFilterModal(true)}
                   style={{
-                    padding: '6px 14px', borderRadius: '20px', border: '1px solid',
-                    borderColor: !buddyFilter ? '#fbb124' : '#333',
-                    background: !buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
-                    color: !buddyFilter ? '#fbb124' : '#888',
-                    fontSize: '0.8rem', flexShrink: 0
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    padding: '10px 16px',
+                    borderRadius: '12px',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer'
                   }}
                 >
-                  All
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={16} color={selectedFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                      {selectedFilterBuddies.length > 0
+                        ? `Filtering by ${selectedFilterBuddies.length} members`
+                        : 'Filter by Crew members'}
+                    </span>
+                  </div>
+                  <ChevronRight size={16} color="#444" />
                 </button>
-                {friends.map(f => (
-                  <button
-                    key={f.uid}
-                    onClick={() => setBuddyFilter(f.uid === buddyFilter ? null : f.uid)}
-                    style={{
-                      padding: '6px 14px', borderRadius: '20px', border: '1px solid',
-                      borderColor: f.uid === buddyFilter ? '#fbb124' : '#333',
-                      background: f.uid === buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
-                      color: f.uid === buddyFilter ? '#fbb124' : '#888',
-                      fontSize: '0.8rem', flexShrink: 0
-                    }}
-                  >
-                    {f.username}
-                  </button>
-                ))}
+                {selectedFilterBuddies.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
+                    {selectedFilterBuddies.map(b => (
+                      <span
+                        key={b.uid}
+                        onClick={() => setSelectedFilterBuddies(selectedFilterBuddies.filter(fb => fb.uid !== b.uid))}
+                        style={{
+                          fontSize: '0.7rem', background: 'rgba(251, 177, 36, 0.08)',
+                          color: '#fbb124', padding: '3px 8px', borderRadius: '10px',
+                          border: '1px solid rgba(251, 177, 36, 0.2)', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '4px'
+                        }}
+                      >
+                        {b.username} &times;
+                      </span>
+                    ))}
+                    <button
+                      onClick={() => setSelectedFilterBuddies([])}
+                      style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.7rem', padding: '3px 8px' }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1035,6 +1092,18 @@ function App() {
               accept=".json"
             />
           </div>
+          {showMapFilterModal && (
+            <CrewSelector
+              friends={friends}
+              selectedBuddies={selectedMapFilterBuddies}
+              onToggle={setSelectedMapFilterBuddies}
+              onClose={() => setShowMapFilterModal(false)}
+              title="Filter Map Activity"
+              includeMe={true}
+              currentUserId={currentUser.uid}
+              currentUsername={userData.username}
+            />
+          )}
         </>
       )}
 
@@ -1052,6 +1121,28 @@ function App() {
           selectedBuddies={selectedBuddies}
           onToggle={setSelectedBuddies}
           onClose={() => setShowCrewModal(false)}
+          title="Drinking with..."
+        />
+      )}
+
+      {showActivityFilterModal && (
+        <CrewSelector
+          friends={friends}
+          selectedBuddies={selectedFilterBuddies}
+          onToggle={setSelectedFilterBuddies}
+          onClose={() => setShowActivityFilterModal(false)}
+          title="Filter Activity"
+          includeMe={true}
+          currentUserId={currentUser.uid}
+          currentUsername={userData.username}
+        />
+      )}
+
+      {showVolumeModal && (
+        <CustomVolumeSelector
+          volume={volume}
+          onSelect={setVolume}
+          onClose={() => setShowVolumeModal(false)}
         />
       )}
     </>

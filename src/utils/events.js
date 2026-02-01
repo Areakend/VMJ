@@ -150,6 +150,21 @@ export const inviteToEvent = async (eventId, friendUid, friendUsername) => {
     });
 };
 
+// Remove a participant from an event
+export const removeParticipant = async (eventId, participantUid) => {
+    const eventRef = doc(db, "events", eventId);
+    await runTransaction(db, async (transaction) => {
+        const eventDoc = await transaction.get(eventRef);
+        if (!eventDoc.exists()) throw "Event does not exist";
+
+        const data = eventDoc.data();
+        const participants = data.participants || [];
+        const updatedParticipants = participants.filter(p => p.uid !== participantUid);
+
+        transaction.update(eventRef, { participants: updatedParticipants });
+    });
+};
+
 // Remove a specific drink from an event
 export const removeEventDrink = async (eventId, userUid, drinkTimestamp) => {
     try {
