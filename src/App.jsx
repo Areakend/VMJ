@@ -677,7 +677,7 @@ function App() {
         <div className="user-profile">
           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
             <span className="user-name">{userData.username}</span>
-            <span style={{ fontSize: '0.6rem', color: '#666' }}>v0.1.1-dev (Chevron Fix)</span>
+            <span style={{ fontSize: '0.6rem', color: '#666' }}>v0.2.0 (Stable Update)</span>
           </div>
           <button onClick={logout} className="logout-btn">
             <LogOut size={12} /> Logout
@@ -1092,18 +1092,6 @@ function App() {
               accept=".json"
             />
           </div>
-          {showMapFilterModal && (
-            <CrewSelector
-              friends={friends}
-              selectedBuddies={selectedMapFilterBuddies}
-              onToggle={setSelectedMapFilterBuddies}
-              onClose={() => setShowMapFilterModal(false)}
-              title="Filter Map Activity"
-              includeMe={true}
-              currentUserId={currentUser.uid}
-              currentUsername={userData.username}
-            />
-          )}
         </>
       )}
 
@@ -1132,6 +1120,19 @@ function App() {
           onToggle={setSelectedFilterBuddies}
           onClose={() => setShowActivityFilterModal(false)}
           title="Filter Activity"
+          includeMe={true}
+          currentUserId={currentUser.uid}
+          currentUsername={userData.username}
+        />
+      )}
+
+      {showMapFilterModal && (
+        <CrewSelector
+          friends={friends}
+          selectedBuddies={selectedMapFilterBuddies}
+          onToggle={setSelectedMapFilterBuddies}
+          onClose={() => setShowMapFilterModal(false)}
+          title="Filter Map Activity"
           includeMe={true}
           currentUserId={currentUser.uid}
           currentUsername={userData.username}

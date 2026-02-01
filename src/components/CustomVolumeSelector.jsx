@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { X, ChevronUp, ChevronDown, Check } from 'lucide-react';
 
 export default function CustomVolumeSelector({ volume, onSelect, onClose }) {
     const [tempVolume, setTempVolume] = useState(volume || 4);
-    const scrollRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Handle touch/mouse dragging on the bottle to change volume
     const handleInteraction = (e) => {
@@ -41,9 +41,12 @@ export default function CustomVolumeSelector({ volume, onSelect, onClose }) {
 
                 {/* The Virtual Bottle */}
                 <div
-                    onMouseDown={handleInteraction}
+                    onMouseDown={(e) => { setIsDragging(true); handleInteraction(e); }}
                     onMouseMove={(e) => e.buttons === 1 && handleInteraction(e)}
+                    onMouseUp={() => setIsDragging(false)}
+                    onTouchStart={(e) => { setIsDragging(true); handleInteraction(e); }}
                     onTouchMove={handleInteraction}
+                    onTouchEnd={() => setIsDragging(false)}
                     style={{
                         width: '100px',
                         height: '240px',
@@ -54,7 +57,8 @@ export default function CustomVolumeSelector({ volume, onSelect, onClose }) {
                         cursor: 'ns-resize',
                         overflow: 'hidden',
                         marginBottom: '2rem',
-                        boxShadow: 'inset 0 0 20px rgba(0,0,0,1)'
+                        boxShadow: 'inset 0 0 20px rgba(0,0,0,1)',
+                        touchAction: 'none'
                     }}
                 >
                     {/* Bottle Neck */}
@@ -69,10 +73,10 @@ export default function CustomVolumeSelector({ volume, onSelect, onClose }) {
                         bottom: 0, left: 0, right: 0,
                         height: `${(tempVolume / 70) * 100}%`,
                         background: 'linear-gradient(to top, #354e41, #fbb124)',
-                        transition: 'height 0.1s ease-out',
+                        transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         boxShadow: '0 -5px 15px rgba(251, 177, 36, 0.3)'
                     }}>
-                        {/* Bubbles animation would be nice, but keeping it simple */}
+                        {/* Highlights */}
                         <div style={{
                             position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'white', opacity: 0.3
                         }} />

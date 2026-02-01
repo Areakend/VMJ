@@ -22,6 +22,14 @@ body {
   justify-content: center;
   padding-bottom: 90px;
   /* Space for bottom nav */
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
 }
 
 *,

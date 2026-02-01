@@ -152,13 +152,13 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
     const leaderboard = {};
     // Initialize all participants with 0
     event.participants?.forEach(p => {
-        leaderboard[p.uid] = { username: p.username, shots: 0, volume: 0 };
+        leaderboard[p.uid] = { uid: p.uid, username: p.username, shots: 0, volume: 0 };
     });
 
     eventDrinks.forEach(d => {
         if (!leaderboard[d.uid]) {
             // Should not happen for registered participants but handle for safety
-            leaderboard[d.uid] = { username: d.username, shots: 0, volume: 0 };
+            leaderboard[d.uid] = { uid: d.uid, username: d.username, shots: 0, volume: 0 };
         }
         leaderboard[d.uid].shots += 1;
         leaderboard[d.uid].volume += d.volume || 0;
