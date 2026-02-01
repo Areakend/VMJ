@@ -604,7 +604,7 @@ function App() {
         <div className="user-profile">
           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
             <span className="user-name">{userData.username}</span>
-            <span style={{ fontSize: '0.6rem', color: '#666' }}>v0.1 Beta</span>
+            <span style={{ fontSize: '0.6rem', color: '#666' }}>v0.1.1-dev (Chevron Fix)</span>
           </div>
           <button onClick={logout} className="logout-btn">
             <LogOut size={12} /> Logout
@@ -825,7 +825,7 @@ function App() {
                     : 'Select Crew members'}
                 </span>
               </div>
-              <ChevronRight size={18} color="#444" />
+              {ChevronRight && <ChevronRight size={18} color="#444" />}
             </button>
             {selectedBuddies.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>

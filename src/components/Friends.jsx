@@ -352,7 +352,7 @@ export default function Friends() {
                                 >
                                     <Trash2 size={18} color="#666" />
                                 </button>
-                                <ChevronRight size={18} color="#444" />
+                                {ChevronRight && <ChevronRight size={18} color="#444" />}
                             </div>
                         </li>
                     ))}
