@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, UserPlus, Users, Check, X, Trash2, Droplets, Beer, ChevronRight } from 'lucide-react';
+import { UserPlus, Search, X, Check, Trash2, Share2, Beer } from 'lucide-react';
+import { Share } from '@capacitor/share';
 import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
@@ -201,37 +202,55 @@ export default function Friends() {
         <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* Search Section */}
             <div>
-                <h3 style={{ color: 'var(--jager-orange)', marginBottom: '1rem' }}>Find a Drinking Buddy</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ color: 'var(--jager-orange)', margin: 0 }}>Find a Drinking Buddy</h3>
+                    <button
+                        onClick={async () => {
+                            try {
+                                const link = `vitemonjager://add-friend?username=${userData.username}`;
+                                await Share.share({
+                                    title: 'Join my Jäger Crew!',
+                                    text: `Add me on Jäger Tracker: ${userData.username}`,
+                                    url: link,
+                                    dialogTitle: 'Share your profile',
+                                });
+                            } catch (e) {
+                                console.log('Share dismissed');
+                            }
+                        }}
+                        style={{
+                            background: 'transparent',
+                            color: 'var(--text-secondary)',
+                            border: '1px solid #444',
+                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '0.8rem'
+                        }}
+                    >
+                        <Share2 size={16} /> Share Profile
+                    </button>
+                </div>
                 <form onSubmit={handleSendRequest} style={{ display: 'flex', gap: '8px' }}>
                     <div style={{ position: 'relative', flex: 1 }}>
                         <Search size={18} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                         <input
                             type="text"
+                            className="premium-input"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search username..."
-                            style={{
-                                width: '100%',
-                                padding: '10px 10px 10px 36px',
-                                borderRadius: '8px',
-                                border: '1px solid #444',
-                                background: '#2b2b2b',
-                                color: 'white',
-                                boxSizing: 'border-box'
-                            }}
+                            style={{ paddingLeft: '36px' }}
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={loading}
-                        style={{
-                            background: 'var(--jager-green)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '0 12px',
-                            cursor: 'pointer'
-                        }}
+                        className="premium-button"
+                        style={{ width: 'auto', padding: '0 16px' }}
                     >
                         <UserPlus size={20} />
                     </button>

@@ -152,12 +152,35 @@ export const deleteDrink = async (userId, drinkId) => {
         if (drinkSnap.exists()) {
             const data = drinkSnap.data();
 
-            // If I am the creator, delete from my buddies too
+            // Case 1: Creator deletes -> Delete everywhere (Existing logic)
             if (data.creatorId === userId && data.syncedIds) {
                 const deletePromises = Object.entries(data.syncedIds).map(([buddyUid, buddyDocId]) =>
                     deleteDoc(doc(db, "users", buddyUid, "drinks", buddyDocId))
                 );
                 await Promise.all(deletePromises);
+            }
+            // Case 2: Buddy deletes -> Remove self from everyone's logs
+            else if (data.creatorId && data.creatorId !== userId && data.originalDrinkId) {
+                const originalDrinkRef = doc(db, "users", data.creatorId, "drinks", data.originalDrinkId);
+                const originalSnap = await getDoc(originalDrinkRef);
+
+                if (originalSnap.exists()) {
+                    const originalData = originalSnap.data();
+                    const updatedBuddies = (originalData.buddies || []).filter(b => b.uid !== userId);
+
+                    // 1. Update Creator's doc
+                    await setDoc(originalDrinkRef, { buddies: updatedBuddies }, { merge: true });
+
+                    // 2. Update other Buddies' docs
+                    if (originalData.syncedIds) {
+                        const updatePromises = Object.entries(originalData.syncedIds)
+                            .filter(([buddyUid]) => buddyUid !== userId) // Don't update self (about to delete)
+                            .map(([buddyUid, buddyDocId]) =>
+                                setDoc(doc(db, "users", buddyUid, "drinks", buddyDocId), { buddies: updatedBuddies }, { merge: true })
+                            );
+                        await Promise.all(updatePromises);
+                    }
+                }
             }
         }
 

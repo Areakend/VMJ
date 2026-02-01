@@ -65,3 +65,60 @@ exports.onNotificationCreated = onDocumentCreated("users/{uid}/notifications/{no
         return null;
     }
 });
+
+exports.onFriendRequestCreated = onDocumentCreated("users/{uid}/friendRequests/{requestId}", async (event) => {
+    const data = event.data.data();
+    const uid = event.params.uid;
+
+    if (!data || !data.fromUsername) return null;
+
+    try {
+        // 1. Get the target user's FCM token
+        const userSnap = await getFirestore().doc(`users/${uid}`).get();
+        const userData = userSnap.data();
+        const fcmToken = userData?.fcmToken;
+
+        if (!fcmToken) {
+            console.log(`No FCM token found for user ${uid}`);
+            return null;
+        }
+
+        // 2. Prepare the push message
+        const message = {
+            notification: {
+                title: "New Crew Request! 🍻",
+                body: `${data.fromUsername} wants to join your drinking crew!`,
+            },
+            data: {
+                click_action: "FLUTTER_NOTIFICATION_CLICK",
+                type: "friend_request",
+                fromUid: data.fromUid
+            },
+            token: fcmToken,
+            android: {
+                notification: {
+                    channel_id: "default",
+                    priority: "high",
+                    icon: "ic_stat_name"
+                }
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: "default",
+                        badge: 1
+                    }
+                }
+            }
+        };
+
+        // 3. Send the message via FCM
+        const response = await getMessaging().send(message);
+        console.log("Successfully sent friend request notification:", response);
+        return response;
+
+    } catch (error) {
+        console.error("Error sending friend request notification:", error);
+        return null;
+    }
+});

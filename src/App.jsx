@@ -10,8 +10,9 @@ import UsernameSetup from './components/UsernameSetup'
 import Friends from './components/Friends'
 import DrinkMap from './components/DrinkMap'
 import MapFilter from './components/MapFilter'
-import { subscribeToFriends, saveFcmToken } from './utils/storage'
+import { subscribeToFriends, saveFcmToken, sendFriendRequest } from './utils/storage'
 import { PushNotifications } from '@capacitor/push-notifications'
+import { App as CapApp } from '@capacitor/app'
 
 function EditModal({ drink, onClose, onSave }) {
   const [volume, setVolume] = useState(drink.volume || 2);
@@ -256,7 +257,48 @@ function App() {
       }
     };
 
-    // --- Push Notifications (Background) ---
+    // --- Deep Link Handling ---
+    useEffect(() => {
+      CapApp.addListener('appUrlOpen', async (data) => {
+        // Example: vitemonjager://add-friend?username=TheLegend
+        if (data.url.includes('add-friend') && currentUser && userData?.username) {
+          try {
+            const url = new URL(data.url);
+            const targetUsername = url.searchParams.get('username');
+
+            if (targetUsername && targetUsername !== userData.username) {
+              // SECURITY: Validate format before even showing the prompt
+              // This prevents spamming with long strings or invalid characters
+              const { validateUsername } = await import('./utils/storage');
+              const validationError = validateUsername(targetUsername);
+
+              if (validationError) {
+                console.warn("Blocked invalid deep link username:", targetUsername);
+                return;
+              }
+
+              const confirmAdd = confirm(`Add ${targetUsername} as a drinking buddy?`);
+              if (confirmAdd) {
+                try {
+                  await sendFriendRequest(currentUser.uid, userData.username, targetUsername);
+                  alert(`Friend request sent to ${targetUsername}!`);
+                } catch (e) {
+                  if (e.message === 'Already friends') {
+                    alert(`You are already friends with ${targetUsername}!`);
+                  } else {
+                    alert(`Error adding friend: ${e.message}`);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Deep link error:', err);
+          }
+        }
+      });
+    }, [currentUser, userData]);
+
+    // --- Push Notifications ---
     const setupPush = async () => {
       if (!Capacitor.isNativePlatform()) return;
 
