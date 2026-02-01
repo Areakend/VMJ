@@ -33,6 +33,7 @@ export const createEvent = async (creatorUid, creatorUsername, title, date) => {
                 uid: creatorUid,
                 username: creatorUsername,
                 role: 'knighted', // creator is always knighted (active)
+                status: 'active',
                 joinedAt: Date.now()
             }],
             status: 'open', // open | closed (global)

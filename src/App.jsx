@@ -654,9 +654,9 @@ function App() {
         </div>
       ) : view === 'events' ? (
         selectedEventId ? (
-          <EventDetails eventId={selectedEventId} onBack={() => setSelectedEventId(null)} />
+          <EventDetails eventId={selectedEventId} currentUser={currentUser} userData={userData} friends={friends} onBack={() => setSelectedEventId(null)} />
         ) : (
-          <EventsView onSelectEvent={setSelectedEventId} />
+          <EventsView currentUser={currentUser} userData={userData} friends={friends} onSelectEvent={setSelectedEventId} />
         )
       ) : (
         <>

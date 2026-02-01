@@ -73,7 +73,6 @@ export default function EventsView({ currentUser, userData, friends }) {
                                 value={newDate}
                                 onChange={e => setNewDate(e.target.value)}
                                 required
-                                style={{ width: '100%' }}
                             />
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
