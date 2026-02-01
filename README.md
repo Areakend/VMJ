@@ -1,5 +1,5 @@
 # Jäger Tracker 🦌🥃
-**Current Version: v0.1-beta**  
+**Current Version: v0.2-beta**  
 [Read the Changelog (Latest Patches)](CHANGELOG.md)
 
 Jäger Tracker is a premium mobile application built with React and Capacitor to track your Jagermeister consumption across devices. 
