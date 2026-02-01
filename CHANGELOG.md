@@ -14,6 +14,10 @@
 - **Smart Deletion**:
   - **Participant**: Deleting a shared drink now seamlessly untags you without deleting the session for others.
   - **Creator**: Deleting a drink still removes it for the entire group.
+- **Shared Events**:
+  - **Management**: Create, browse, and invite friends to named drinking events.
+  - **Leaderboards**: Real-time ranking of participants by shots and volume within an event.
+  - **Active Mode**: Toggle the "Open" status to automatically tag your new drinks to the specific event.
 
 ### 🎨 Premium UI Overhaul
 - **Aesthetic Upgrade**: Complete redesign of the Onboarding flow with a high-end glassmorphism card.
