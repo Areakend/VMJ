@@ -158,6 +158,7 @@ function App() {
   const [editingDrink, setEditingDrink] = useState(null);
   const [notifPermission, setNotifPermission] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [friends, setFriends] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [selectedMapUids, setSelectedMapUids] = useState([]);
   const [mapDrinks, setMapDrinks] = useState([]);
   const [drinkComment, setDrinkComment] = useState("");
