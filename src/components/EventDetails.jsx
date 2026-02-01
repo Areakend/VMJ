@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { inviteToEvent, toggleEventStatus } from '../utils/events';
+import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink } from '../utils/events';
 import { format } from 'date-fns';
-import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus } from 'lucide-react';
+import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2 } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
@@ -57,12 +57,33 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
         }
     };
 
+    const handleGlobalStatus = async (status) => {
+        if (!window.confirm(`Are you sure you want to ${status === 'open' ? 're-open' : 'close'} this event for everyone?`)) return;
+        try {
+            await setEventStatus(eventId, status);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to update global status");
+        }
+    };
+
+    const handleDeleteEvent = async () => {
+        if (!window.confirm("CRITICAL: Delete this event and all its shot records? This cannot be undone.")) return;
+        try {
+            await deleteEvent(eventId);
+            onBack();
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete event");
+        }
+    };
+
     const handleShareEvent = async () => {
         try {
             const link = `vitemonjager://event?id=${eventId}`;
             await Share.share({
                 title: `Join our Jäger Event: ${event.title}`,
-                text: `Click to join "${event.title}" on Jäger Tracker!`,
+                text: `Click to join "${event.title}" on Jäger Tracker! ${link}`,
                 url: link,
                 dialogTitle: 'Share Event',
             });
@@ -77,7 +98,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 timestamp: Date.now(),
                 volume: 2,
                 comment: "Event Shot! 🦌",
-                eventId: eventId
+                eventIds: [eventId]
             };
             await addEventDrink(eventId, currentUser.uid, userData.username, shot);
             // Also add to personal log for consistency
@@ -96,8 +117,16 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
 
     // Calculate Leaderboard
     const leaderboard = {};
+    // Initialize all participants with 0
+    event.participants?.forEach(p => {
+        leaderboard[p.uid] = { username: p.username, shots: 0, volume: 0 };
+    });
+
     eventDrinks.forEach(d => {
-        if (!leaderboard[d.uid]) leaderboard[d.uid] = { username: d.username, shots: 0, volume: 0 };
+        if (!leaderboard[d.uid]) {
+            // Should not happen for registered participants but handle for safety
+            leaderboard[d.uid] = { username: d.username, shots: 0, volume: 0 };
+        }
         leaderboard[d.uid].shots += 1;
         leaderboard[d.uid].volume += d.volume || 0;
     });
@@ -118,7 +147,17 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 borderRadius: '24px', padding: '1.5rem', marginBottom: '1.5rem',
                 border: '1px solid #333', boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
             }}>
-                <h1 style={{ margin: 0, fontSize: '2rem', marginBottom: '0.5rem' }}>{event.title}</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <h1 style={{ margin: 0, fontSize: '2rem' }}>{event.title}</h1>
+                    {event.creator.uid === currentUser.uid && (
+                        <button
+                            onClick={handleDeleteEvent}
+                            style={{ background: 'rgba(255,0,0,0.1)', border: 'none', color: '#ff4444', padding: '8px', borderRadius: '12px' }}
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                    )}
+                </div>
                 <p style={{ color: '#888', margin: 0, marginBottom: '1.5rem' }}>{format(new Date(event.date), "EEEE, MMMM do, h:mm a")}</p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -166,7 +205,9 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
 
                 <div style={{ borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontWeight: 'bold' }}>My Satus:</span>
+                        <span style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            My Status: {amIActive ? <CheckCircle size={16} color="var(--jager-green)" /> : <UserPlus size={16} color="#444" />}
+                        </span>
                         <button
                             onClick={() => handleToggleStatus(!amIActive)}
                             style={{
@@ -176,12 +217,27 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                             }}
                         >
                             {amIActive ? <Unlock size={16} /> : <Lock size={16} />}
-                            {amIActive ? 'Open (Drinking)' : 'Closed'}
+                            {amIActive ? 'Open' : 'Closed'}
                         </button>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0 }}>
-                        {amIActive ? "Drinks you add will be tagged to this event." : "Drinks you add currently go to your personal log only."}
-                    </p>
+
+                    {/* Global Control for Creator */}
+                    {event.creator.uid === currentUser.uid && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid #222', paddingTop: '1rem' }}>
+                            <span style={{ fontWeight: 'bold', color: '#888', fontSize: '0.9rem' }}>Global (Admin):</span>
+                            <button
+                                onClick={() => handleGlobalStatus(event.status === 'open' ? 'closed' : 'open')}
+                                style={{
+                                    background: event.status === 'open' ? 'rgba(251, 177, 36, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                                    color: event.status === 'open' ? 'var(--jager-orange)' : '#666',
+                                    border: '1px solid', borderColor: event.status === 'open' ? 'var(--jager-orange)' : '#444',
+                                    padding: '6px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold'
+                                }}
+                            >
+                                {event.status === 'open' ? 'Lock Event' : 'Unlock'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

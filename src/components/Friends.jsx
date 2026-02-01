@@ -210,7 +210,7 @@ export default function Friends() {
                                 const link = `vitemonjager://add-friend?username=${userData.username}`;
                                 await Share.share({
                                     title: 'Join my Jäger Crew!',
-                                    text: `Add me on Jäger Tracker: ${userData.username}`,
+                                    text: `Add me on Jäger Tracker: ${userData.username} ${link}`,
                                     url: link,
                                     dialogTitle: 'Share your profile',
                                 });

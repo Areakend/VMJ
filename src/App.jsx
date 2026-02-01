@@ -12,8 +12,9 @@ import DrinkMap from './components/DrinkMap'
 import MapFilter from './components/MapFilter'
 import EventsView from './components/EventsView'
 import EventDetails from './components/EventDetails'
+import CrewSelector from './components/CrewSelector'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest, subscribeToRequests } from './utils/storage'
-import { addEventDrink, subscribeToMyEvents } from './utils/events'
+import { addEventDrink, subscribeToMyEvents, removeEventDrink } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
@@ -169,6 +170,7 @@ function App() {
   const fileInputRef = useRef(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [activeEvents, setActiveEvents] = useState([]); // Events where I am status='active'
+  const [showCrewModal, setShowCrewModal] = useState(false);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
@@ -354,6 +356,26 @@ function App() {
           console.error('Deep link error:', err);
         }
       }
+
+      // vitemonjager://event?id=...
+      if (data.url.includes('event') && currentUser) {
+        try {
+          const url = new URL(data.url);
+          const eventIdForLink = url.searchParams.get('id');
+          if (eventIdForLink) {
+            const confirmJoin = confirm("Join this Jäger event?");
+            if (confirmJoin) {
+              const { inviteToEvent } = await import('./utils/events');
+              await inviteToEvent(eventIdForLink, currentUser.uid, userData.username);
+              setSelectedEventId(eventIdForLink);
+              setView('events');
+              alert("Joined event!");
+            }
+          }
+        } catch (e) {
+          console.error("Event deep link fail", e);
+        }
+      }
     });
 
     return () => {
@@ -380,6 +402,7 @@ function App() {
         console.warn("Location fail", locErr);
       }
 
+      const activeEventIds = activeEvents.map(ev => ev.id);
       const newDrink = {
         timestamp: Date.now(),
         latitude: location?.latitude || null,
@@ -387,16 +410,28 @@ function App() {
         accuracy: location?.accuracy || null,
         locationName: addressName || null,
         volume: volume,
-        comment: drinkComment.trim() || null
+        comment: drinkComment.trim() || null,
+        eventIds: activeEventIds
       };
 
       await addDrink(currentUser.uid, newDrink, userData?.username || "A friend", selectedBuddies);
 
-      // --- Add to active events ---
+      // --- Sync to active events ---
       if (activeEvents.length > 0) {
         for (const ev of activeEvents) {
           try {
+            // 1. Add my shot to event
             await addEventDrink(ev.id, currentUser.uid, userData.username, newDrink);
+
+            // 2. Add tagged buddies' shots to event if they are participants
+            if (selectedBuddies.length > 0) {
+              for (const buddy of selectedBuddies) {
+                const isBuddyInEvent = ev.participants?.some(p => p.uid === buddy.uid);
+                if (isBuddyInEvent) {
+                  await addEventDrink(ev.id, buddy.uid, buddy.username, newDrink);
+                }
+              }
+            }
           } catch (evErr) {
             console.warn("Field to add to event", ev.id, evErr);
           }
@@ -421,6 +456,32 @@ function App() {
     } catch (err) {
       console.error(err);
       alert("Failed to update drink");
+    }
+  };
+
+  const handleDeleteDrink = async (drink) => {
+    if (!window.confirm("Delete this shot?")) return;
+    try {
+      await deleteDrink(currentUser.uid, drink.id);
+
+      // Sync with events
+      if (drink.eventIds && drink.eventIds.length > 0) {
+        const { removeEventDrink } = await import('./utils/events'); // Dynamically import if not already at top
+        for (const eventId of drink.eventIds) {
+          try {
+            await removeEventDrink(eventId, currentUser.uid, drink.timestamp);
+
+            // Also remove buddies' tagged shots if any
+            if (drink.buddies && drink.buddies.length > 0) {
+              for (const buddy of drink.buddies) {
+                await removeEventDrink(eventId, buddy.uid, drink.timestamp);
+              }
+            }
+          } catch (e) { console.error(e); }
+        }
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -738,43 +799,46 @@ function App() {
             />
           </div>
 
-          {/* Buddy Selection */}
-          <div style={{ padding: '0 5px', marginBottom: '2.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', paddingLeft: '15px' }}>Drinking with (Tag Crew):</label>
-            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 15px 5px 15px', scrollbarWidth: 'none' }}>
-              {friends.map(f => {
-                const isSelected = selectedBuddies.some(b => b.uid === f.uid);
-                return (
-                  <button
-                    key={f.uid}
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedBuddies(selectedBuddies.filter(b => b.uid !== f.uid));
-                      } else {
-                        setSelectedBuddies([...selectedBuddies, { uid: f.uid, username: f.username }]);
-                      }
-                    }}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '20px',
-                      border: '1px solid',
-                      borderColor: isSelected ? '#fbb124' : '#333',
-                      background: isSelected ? 'rgba(251, 177, 36, 0.15)' : '#1a1a1a',
-                      color: isSelected ? '#fbb124' : '#888',
-                      fontSize: '0.8rem',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.2s',
-                      flexShrink: 0
-                    }}
-                  >
-                    {isSelected ? '✓ ' : '+ '}{f.username}
-                  </button>
-                );
-              })}
-              {friends.length === 0 && (
-                <span style={{ fontSize: '0.8rem', color: '#555', fontStyle: 'italic' }}>Add friends to tag them here!</span>
-              )}
-            </div>
+          {/* Buddy Selection Overhaul */}
+          <div style={{ padding: '0 15px', marginBottom: '2.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>Drinking with:</label>
+            <button
+              onClick={() => setShowCrewModal(true)}
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '16px',
+                borderRadius: '16px',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Users size={20} color={selectedBuddies.length > 0 ? '#fbb124' : '#666'} />
+                <span style={{ fontSize: '1rem', fontWeight: '600' }}>
+                  {selectedBuddies.length > 0
+                    ? `${selectedBuddies.length} Crew members tagged`
+                    : 'Select Crew members'}
+                </span>
+              </div>
+              <ChevronRight size={18} color="#444" />
+            </button>
+            {selectedBuddies.length > 0 && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
+                {selectedBuddies.map(b => (
+                  <span key={b.uid} style={{
+                    fontSize: '0.75rem', background: 'rgba(251, 177, 36, 0.1)',
+                    color: '#fbb124', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(251, 177, 36, 0.2)'
+                  }}>
+                    {b.username}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="history-container">
@@ -879,7 +943,7 @@ function App() {
                     <Edit2 size={16} />
                   </button>
                   <button
-                    onClick={() => deleteDrink(currentUser.uid, drink.id)}
+                    onClick={() => handleDeleteDrink(drink)}
                     className="delete-btn"
                   >
                     &times;
@@ -913,6 +977,15 @@ function App() {
           drink={editingDrink}
           onClose={() => setEditingDrink(null)}
           onSave={handleUpdateDrink}
+        />
+      )}
+
+      {showCrewModal && (
+        <CrewSelector
+          friends={friends}
+          selectedBuddies={selectedBuddies}
+          onToggle={setSelectedBuddies}
+          onClose={() => setShowCrewModal(false)}
         />
       )}
     </>

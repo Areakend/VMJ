@@ -144,10 +144,58 @@ export const inviteToEvent = async (eventId, friendUid, friendUsername) => {
             uid: friendUid,
             username: friendUsername,
             role: 'guest',
-            status: 'pending', // Pending their acceptance? Or just auto-add? 
-            // Prompt says "invite friends to it". Let's auto-add for MVP simpler UX.
+            status: 'active', // Auto-active for simpler joining
             joinedAt: Date.now()
         })
     });
+};
+
+// Remove a specific drink from an event
+export const removeEventDrink = async (eventId, userUid, drinkTimestamp) => {
+    try {
+        const drinksRef = collection(db, "events", eventId, "drinks");
+        const q = query(drinksRef, where("uid", "==", userUid), where("timestamp", "==", drinkTimestamp));
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+            const drinkDoc = snap.docs[0];
+            const drinkData = drinkDoc.data();
+
+            // 1. Delete the doc
+            await deleteDoc(doc(db, "events", eventId, "drinks", drinkDoc.id));
+
+            // 2. Decrement aggregates
+            const eventRef = doc(db, "events", eventId);
+            await updateDoc(eventRef, {
+                totalShots: increment(-1),
+                totalVolume: increment(-(drinkData.volume || 2))
+            });
+        }
+    } catch (e) {
+        console.error("Error removing event drink:", e);
+    }
+};
+
+// Delete an entire event
+export const deleteEvent = async (eventId) => {
+    try {
+        await deleteDoc(doc(db, "events", eventId));
+        return true;
+    } catch (e) {
+        console.error("Error deleting event:", e);
+        throw e;
+    }
+};
+
+// Toggle event open/closed status
+export const setEventStatus = async (eventId, status) => {
+    try {
+        const eventRef = doc(db, "events", eventId);
+        await updateDoc(eventRef, { status });
+        return true;
+    } catch (e) {
+        console.error("Error updating event status:", e);
+        throw e;
+    }
 };
 
