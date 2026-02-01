@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { inviteToEvent, toggleEventStatus } from '../utils/events';
 import { format } from 'date-fns';
-import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle } from 'lucide-react';
+import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices } from 'lucide-react';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
+import JagerRoulette from './JagerRoulette';
 
 export default function EventDetails({ eventId, currentUser, userData, friends, onBack }) {
     const [event, setEvent] = useState(null);
     const [eventDrinks, setEventDrinks] = useState([]);
+    const [showRoulette, setShowRoulette] = useState(false);
 
     // Subscribe to Event Data
     useEffect(() => {
@@ -118,7 +120,28 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
             </div>
 
             {/* Leaderboard / Participants */}
-            <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Leaderboard</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Leaderboard</h3>
+                <button
+                    onClick={() => setShowRoulette(true)}
+                    style={{
+                        background: 'rgba(251, 177, 36, 0.15)', color: 'var(--jager-orange)',
+                        border: 'none', borderRadius: '12px', padding: '6px 12px',
+                        fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <Dices size={16} /> Roulette
+                </button>
+            </div>
+
+            {showRoulette && (
+                <JagerRoulette
+                    participants={event.participants || []}
+                    onClose={() => setShowRoulette(false)}
+                />
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                 {sortedLeaderboard.map((user, idx) => (
                     <div key={idx} style={{
