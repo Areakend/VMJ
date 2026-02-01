@@ -1,5 +1,29 @@
 # Changelog - Jäger Tracker 🦌🥃
 
+## [0.2.0-beta] - 2026-02-01
+
+### 🔒 Security & Hardening
+- **Firestore Rules**: Implemented comprehensive database security rules (`firestore.rules`) to strictly protect user data.
+- **Input Validation**: Added strict server-side and client-side validation for usernames and comments to prevent injection attacks.
+- **Deep Link Security**: Added pre-validation for deep links to block malicious payloads before user prompt.
+- **App Check**: Integrated foundations for Firebase App Check/reCAPTCHA Enterprise.
+
+### ✨ New Features
+- **Smart Profile Sharing**: Added a "Share Profile" button that generates deep links (`vitemonjager://`) for one-click friend adding.
+- **Friend Request Alerts**: Real-time push notifications are now sent when someone wants to join your Crew.
+- **Smart Deletion**:
+  - **Participant**: Deleting a shared drink now seamlessly untags you without deleting the session for others.
+  - **Creator**: Deleting a drink still removes it for the entire group.
+
+### 🎨 Premium UI Overhaul
+- **Aesthetic Upgrade**: Complete redesign of the Onboarding flow with a high-end glassmorphism card.
+- **Premium Components**: Introduced `.premium-button` and `.premium-input` styles with rich gradients, glows, and interactive states.
+- **Iconography**: Integrated `lucide-react` icons throughout the social and setup flows for a polished look.
+
+### 🛠️ Technical
+- **Build Stabilization**: Fixed Android build errors by correctly linking `@capacitor/app`.
+- **Performance**: Limited bulk imports to 100 items to prevent UI freezing.
+
 ## [0.1.0-beta] - 2026-01-28
 ### ✨ New Features
 - **Address-based Location**: Human-readable addresses are now automatically captured. You can edit locations by searching for an address instead of using raw coordinates.
