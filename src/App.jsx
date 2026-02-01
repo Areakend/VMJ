@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar } from 'lucide-react'
+import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
