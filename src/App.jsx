@@ -536,26 +536,13 @@ function App() {
   );
 }
 
-/*
-{/* Navigation Tabs * /}
-<nav className="nav-bar">
-    onClick={() => setView('tracker')}
-    className={`nav-item ${view === 'tracker' ? 'active' : ''}`}
-  >
-    <Target size={18} /> Tracker
-  </button>
-  <button
-    onClick={() => setView('map')}
-    className={`nav-item ${view === 'map' ? 'active' : ''}`}
-  >
-    <MapIcon size={18} /> Map
-  </button>
-  <button
-    onClick={() => setView('friends')}
-    className={`nav-item ${view === 'friends' ? 'active' : ''}`}
-  >
-    <Users size={18} /> Friends
-  </button>
+export default App;
+<button
+  onClick={() => setView('friends')}
+  className={`nav-item ${view === 'friends' ? 'active' : ''}`}
+>
+  <Users size={18} /> Friends
+</button>
 </nav >
 
 {
@@ -647,242 +634,242 @@ function App() {
       </div>
     </div >
   ) : (
-  <>
-    {/* Stats Header */}
-    <div className="stats" style={{ marginBottom: '3.5rem' }}>
-      <div className="stat-item" style={{ borderTop: '2px solid rgba(255,255,255,0.05)' }}>
-        <strong>{totalDrinks}</strong>
-        <span>Total Shots</span>
-      </div>
-      <div className="stat-item" style={{ borderTop: '2px solid var(--jager-orange)', background: 'rgba(251, 177, 36, 0.08)', transform: 'scale(1.05)' }}>
-        <strong>{lastNightVolume}cl</strong>
-        <span>Last Night</span>
-      </div>
-      <div className="stat-item" style={{ borderTop: '2px solid #555' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <strong style={{ fontSize: '1.2rem' }}>{(totalVolumeCl / 70).toFixed(1)}</strong>
-          <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'lowercase' }}>bottles</span>
+    <>
+      {/* Stats Header */}
+      <div className="stats" style={{ marginBottom: '3.5rem' }}>
+        <div className="stat-item" style={{ borderTop: '2px solid rgba(255,255,255,0.05)' }}>
+          <strong>{totalDrinks}</strong>
+          <span>Total Shots</span>
+        </div>
+        <div className="stat-item" style={{ borderTop: '2px solid var(--jager-orange)', background: 'rgba(251, 177, 36, 0.08)', transform: 'scale(1.05)' }}>
+          <strong>{lastNightVolume}cl</strong>
+          <span>Last Night</span>
+        </div>
+        <div className="stat-item" style={{ borderTop: '2px solid #555' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <strong style={{ fontSize: '1.2rem' }}>{(totalVolumeCl / 70).toFixed(1)}</strong>
+            <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'lowercase' }}>bottles</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Action Button */}
-    <div className="main-action-area" style={{ marginBottom: '4rem' }}>
-      <button
-        className="drink-button"
-        onClick={handleDrink}
-        disabled={loading}
-        style={{ width: '210px', height: '210px', boxShadow: '0 0 40px rgba(251, 177, 36, 0.1)' }}
-      >
-        <Beer size={48} />
-        <span className="label" style={{ fontSize: '1.6rem' }}>{loading ? '...' : 'Cheers!'}</span>
-      </button>
-      {error && <div style={{ color: '#ef4444', marginTop: '15px', fontSize: '0.9rem' }}>{error}</div>}
-    </div>
-
-    {/* Volume Selection */}
-    <div className="volume-container">
-      {[2, 4, 8, 12].map(v => (
+      {/* Action Button */}
+      <div className="main-action-area" style={{ marginBottom: '4rem' }}>
         <button
-          key={v}
-          onClick={() => setVolume(v)}
-          className={`volume-btn ${volume === v ? 'active' : ''}`}
+          className="drink-button"
+          onClick={handleDrink}
+          disabled={loading}
+          style={{ width: '210px', height: '210px', boxShadow: '0 0 40px rgba(251, 177, 36, 0.1)' }}
         >
-          <span>{v}cl</span>
-          <small>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : 'Dead'}</small>
+          <Beer size={48} />
+          <span className="label" style={{ fontSize: '1.6rem' }}>{loading ? '...' : 'Cheers!'}</span>
         </button>
-      ))}
-    </div>
-
-    {/* Comment */}
-    <div style={{ padding: '0 15px', marginBottom: '3rem' }}>
-      <input
-        type="text"
-        value={drinkComment}
-        onChange={(e) => setDrinkComment(e.target.value)}
-        placeholder="A toast for..."
-        style={{
-          width: '100%',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          padding: '16px',
-          borderRadius: '16px',
-          color: 'white',
-          fontSize: '0.95rem',
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-        }}
-      />
-    </div>
-
-    {/* Buddy Selection */}
-    <div style={{ padding: '0 5px', marginBottom: '2.5rem' }}>
-      <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', paddingLeft: '15px' }}>Drinking with (Tag Crew):</label>
-      <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 15px 5px 15px', scrollbarWidth: 'none' }}>
-        {friends.map(f => {
-          const isSelected = selectedBuddies.some(b => b.uid === f.uid);
-          return (
-            <button
-              key={f.uid}
-              onClick={() => {
-                if (isSelected) {
-                  setSelectedBuddies(selectedBuddies.filter(b => b.uid !== f.uid));
-                } else {
-                  setSelectedBuddies([...selectedBuddies, { uid: f.uid, username: f.username }]);
-                }
-              }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor: isSelected ? '#fbb124' : '#333',
-                background: isSelected ? 'rgba(251, 177, 36, 0.15)' : '#1a1a1a',
-                color: isSelected ? '#fbb124' : '#888',
-                fontSize: '0.8rem',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s',
-                flexShrink: 0
-              }}
-            >
-              {isSelected ? '✓ ' : '+ '}{f.username}
-            </button>
-          );
-        })}
-        {friends.length === 0 && (
-          <span style={{ fontSize: '0.8rem', color: '#555', fontStyle: 'italic' }}>Add friends to tag them here!</span>
-        )}
+        {error && <div style={{ color: '#ef4444', marginTop: '15px', fontSize: '0.9rem' }}>{error}</div>}
       </div>
-    </div>
 
-    <div className="history-container">
-      <div className="filter-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'bold' }}>FILTER MY HISTORY:</span>
-          {sharedStats && (
-            <div className="shared-stats-badge">
-              <Users size={12} /> {sharedStats.shots} shots together
-            </div>
+      {/* Volume Selection */}
+      <div className="volume-container">
+        {[2, 4, 8, 12].map(v => (
+          <button
+            key={v}
+            onClick={() => setVolume(v)}
+            className={`volume-btn ${volume === v ? 'active' : ''}`}
+          >
+            <span>{v}cl</span>
+            <small>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : 'Dead'}</small>
+          </button>
+        ))}
+      </div>
+
+      {/* Comment */}
+      <div style={{ padding: '0 15px', marginBottom: '3rem' }}>
+        <input
+          type="text"
+          value={drinkComment}
+          onChange={(e) => setDrinkComment(e.target.value)}
+          placeholder="A toast for..."
+          style={{
+            width: '100%',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            padding: '16px',
+            borderRadius: '16px',
+            color: 'white',
+            fontSize: '0.95rem',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+          }}
+        />
+      </div>
+
+      {/* Buddy Selection */}
+      <div style={{ padding: '0 5px', marginBottom: '2.5rem' }}>
+        <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', paddingLeft: '15px' }}>Drinking with (Tag Crew):</label>
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 15px 5px 15px', scrollbarWidth: 'none' }}>
+          {friends.map(f => {
+            const isSelected = selectedBuddies.some(b => b.uid === f.uid);
+            return (
+              <button
+                key={f.uid}
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedBuddies(selectedBuddies.filter(b => b.uid !== f.uid));
+                  } else {
+                    setSelectedBuddies([...selectedBuddies, { uid: f.uid, username: f.username }]);
+                  }
+                }}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: '1px solid',
+                  borderColor: isSelected ? '#fbb124' : '#333',
+                  background: isSelected ? 'rgba(251, 177, 36, 0.15)' : '#1a1a1a',
+                  color: isSelected ? '#fbb124' : '#888',
+                  fontSize: '0.8rem',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s',
+                  flexShrink: 0
+                }}
+              >
+                {isSelected ? '✓ ' : '+ '}{f.username}
+              </button>
+            );
+          })}
+          {friends.length === 0 && (
+            <span style={{ fontSize: '0.8rem', color: '#555', fontStyle: 'italic' }}>Add friends to tag them here!</span>
           )}
         </div>
+      </div>
 
-        <div className="date-filter-row">
-          <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
-          <span style={{ color: '#444' }}>→</span>
-          <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
-        </div>
+      <div className="history-container">
+        <div className="filter-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'bold' }}>FILTER MY HISTORY:</span>
+            {sharedStats && (
+              <div className="shared-stats-badge">
+                <Users size={12} /> {sharedStats.shots} shots together
+              </div>
+            )}
+          </div>
 
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
-          <button
-            onClick={() => setBuddyFilter(null)}
-            style={{
-              padding: '6px 14px', borderRadius: '20px', border: '1px solid',
-              borderColor: !buddyFilter ? '#fbb124' : '#333',
-              background: !buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
-              color: !buddyFilter ? '#fbb124' : '#888',
-              fontSize: '0.8rem', flexShrink: 0
-            }}
-          >
-            All
-          </button>
-          {friends.map(f => (
+          <div className="date-filter-row">
+            <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            <span style={{ color: '#444' }}>→</span>
+            <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
             <button
-              key={f.uid}
-              onClick={() => setBuddyFilter(f.uid === buddyFilter ? null : f.uid)}
+              onClick={() => setBuddyFilter(null)}
               style={{
                 padding: '6px 14px', borderRadius: '20px', border: '1px solid',
-                borderColor: f.uid === buddyFilter ? '#fbb124' : '#333',
-                background: f.uid === buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
-                color: f.uid === buddyFilter ? '#fbb124' : '#888',
+                borderColor: !buddyFilter ? '#fbb124' : '#333',
+                background: !buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
+                color: !buddyFilter ? '#fbb124' : '#888',
                 fontSize: '0.8rem', flexShrink: 0
               }}
             >
-              {f.username}
+              All
             </button>
-          ))}
+            {friends.map(f => (
+              <button
+                key={f.uid}
+                onClick={() => setBuddyFilter(f.uid === buddyFilter ? null : f.uid)}
+                style={{
+                  padding: '6px 14px', borderRadius: '20px', border: '1px solid',
+                  borderColor: f.uid === buddyFilter ? '#fbb124' : '#333',
+                  background: f.uid === buddyFilter ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
+                  color: f.uid === buddyFilter ? '#fbb124' : '#888',
+                  fontSize: '0.8rem', flexShrink: 0
+                }}
+              >
+                {f.username}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="history-header">Recent Activity</div>
+        <div className="history-header">Recent Activity</div>
 
-      {drinks.length === 0 && (
-        <p style={{ color: '#666', textAlign: 'center', margin: '2rem 0', fontStyle: 'italic' }}>
-          No drinks tracked yet.<br />Time to fix that?
-        </p>
-      )}
+        {drinks.length === 0 && (
+          <p style={{ color: '#666', textAlign: 'center', margin: '2rem 0', fontStyle: 'italic' }}>
+            No drinks tracked yet.<br />Time to fix that?
+          </p>
+        )}
 
-      {filteredDrinks.slice(0, 10).map(drink => (
-        <div key={drink.id} className="history-item">
-          <div style={{ flex: 1 }}>
-            <div className="history-time">
-              {format(new Date(drink.timestamp), 'HH:mm')}
-              <span className="history-date"> {format(new Date(drink.timestamp), 'dd MMM')}</span>
-            </div>
-            <div className="history-meta">
-              <span className="tag">
-                <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
-                {drink.volume || 2}cl
-              </span>
-              {drink.locationName ? (
-                <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
+        {filteredDrinks.slice(0, 10).map(drink => (
+          <div key={drink.id} className="history-item">
+            <div style={{ flex: 1 }}>
+              <div className="history-time">
+                {format(new Date(drink.timestamp), 'HH:mm')}
+                <span className="history-date"> {format(new Date(drink.timestamp), 'dd MMM')}</span>
+              </div>
+              <div className="history-meta">
+                <span className="tag">
+                  <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
+                  {drink.volume || 2}cl
                 </span>
-              ) : drink.latitude && (
-                <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
-                  <MapPin size={10} style={{ marginRight: 2 }} /> Map
-                </span>
+                {drink.locationName ? (
+                  <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
+                  </span>
+                ) : drink.latitude && (
+                  <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
+                    <MapPin size={10} style={{ marginRight: 2 }} /> Map
+                  </span>
+                )}
+              </div>
+              {drink.buddies && drink.buddies.length > 0 && (
+                <div style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Users size={10} />
+                  <span>with {drink.buddies.map(b => b.username).join(', ')}</span>
+                </div>
+              )}
+              {drink.creatorId !== currentUser.uid && (
+                <div style={{ fontSize: '0.65rem', color: '#888', fontStyle: 'italic' }}>Tagged by {drink.creatorName || 'a buddy'}</div>
+              )}
+              {drink.comment && (
+                <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
+                  "{drink.comment}"
+                </div>
               )}
             </div>
-            {drink.buddies && drink.buddies.length > 0 && (
-              <div style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Users size={10} />
-                <span>with {drink.buddies.map(b => b.username).join(', ')}</span>
-              </div>
-            )}
-            {drink.creatorId !== currentUser.uid && (
-              <div style={{ fontSize: '0.65rem', color: '#888', fontStyle: 'italic' }}>Tagged by {drink.creatorName || 'a buddy'}</div>
-            )}
-            {drink.comment && (
-              <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
-                "{drink.comment}"
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setEditingDrink(drink)}
+                className="delete-btn"
+                style={{ color: '#888' }}
+              >
+                <Edit2 size={16} />
+              </button>
+              <button
+                onClick={() => deleteDrink(currentUser.uid, drink.id)}
+                className="delete-btn"
+              >
+                &times;
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setEditingDrink(drink)}
-              className="delete-btn"
-              style={{ color: '#888' }}
-            >
-              <Edit2 size={16} />
-            </button>
-            <button
-              onClick={() => deleteDrink(currentUser.uid, drink.id)}
-              className="delete-btn"
-            >
-              &times;
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
 
-    {/* Import / Export */}
-    <div className="utility-bar">
-      <button onClick={handleExport} className="utility-btn">
-        <Download size={14} /> Export
-      </button>
-      <button onClick={() => fileInputRef.current.click()} className="utility-btn">
-        <Upload size={14} /> Import
-      </button>
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleImport}
-        style={{ display: 'none' }}
-        accept=".json"
-      />
-    </div>
-  </>
-)
+      {/* Import / Export */}
+      <div className="utility-bar">
+        <button onClick={handleExport} className="utility-btn">
+          <Download size={14} /> Export
+        </button>
+        <button onClick={() => fileInputRef.current.click()} className="utility-btn">
+          <Upload size={14} /> Import
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImport}
+          style={{ display: 'none' }}
+          accept=".json"
+        />
+      </div>
+    </>
+  )
 }
 
 /*
