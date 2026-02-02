@@ -56,14 +56,30 @@ export function AuthProvider({ children }) {
                     setSyncStatus("Redirecting to Google...");
                     return await signInWithRedirect(auth, googleProvider);
                 } else {
-                    // Desktop: Use redirect by default (more reliable across networks)
-                    console.log("[AUTH] Desktop detected, using redirect...");
-                    setSyncStatus("Redirecting to Google...");
-                    return await signInWithRedirect(auth, googleProvider);
+                    // Desktop: Use Popup (most reliable across domains/incognito)
+                    console.log("[AUTH] Desktop detected, using popup...");
+                    try {
+                        return await signInWithPopup(auth, googleProvider);
+                    } catch (pErr) {
+                        // Only fallback to redirect if popup is strictly blocked/failed systemically
+                        console.error("[AUTH] Popup failed:", pErr);
+                        if (pErr.code === 'auth/popup-blocked') {
+                            alert("Popups are blocked. Please allow popups for this site or try again.");
+                        } else if (pErr.code === 'auth/popup-closed-by-user') {
+                            // User intentionally closed it, don't force redirect
+                            console.log("[AUTH] Popup closed by user.");
+                        } else {
+                            // For other errors, we might alert or throw
+                            alert("Login failed: " + pErr.message);
+                        }
+                        throw pErr;
+                    }
                 }
             } catch (err) {
                 console.error("[AUTH] Web Sign-In error:", err);
-                alert("Sign-in error: " + err.message);
+                if (err.code !== 'auth/popup-closed-by-user') {
+                    alert("Sign-in error: " + err.message);
+                }
                 throw err;
             }
         }
