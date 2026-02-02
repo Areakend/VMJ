@@ -21,6 +21,7 @@ All notable changes to the Jäger Tracker (ViteMonJager) project will be documen
 ### Fixed
 - **Chevron Fix**: Fixed a crash in `App.jsx` where `ChevronRight` (and other icons) were used before being imported or defined.
 - **Icon Missing Crash**: Fixed a crash when opening the Crew Selector due to missing Lucide icon imports.
+- **Login Reliability**: Removed premature timeout that was canceling logins, and added a troubleshooting mode with manual popup login for network-restricted environments.
 - **Participant Removal Fix**: Resolved an issue where removing someone from an event would fail due to missing UID in the leaderboard object.
 - **Tap Highlight Removal**: Removed the default blue overlay when clicking buttons/filters on mobile devices for a more native feel.
 - **Animation Polish**: Optimized the Custom Volume filling animation to be smoother by disabling transitions during active dragging.

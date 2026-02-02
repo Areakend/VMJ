@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = useState(null);
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [syncStatus, setSyncStatus] = useState("Checking session...");
 
     // Initialize Native Google Auth
     useEffect(() => {
@@ -26,34 +27,57 @@ export function AuthProvider({ children }) {
     }, []);
 
     // Login function
-    async function login() {
-        console.log("Login attempt. Platform:", Capacitor.getPlatform());
+    async function login(options = {}) {
+        const { forcePopup = false } = options;
+        console.log("[AUTH] Login attempt. Platform:", Capacitor.getPlatform(), "ForcePopup:", forcePopup);
+
         if (Capacitor.isNativePlatform()) {
             try {
-                console.log("Native platform detected. Initializing GoogleAuth...");
                 const user = await GoogleAuth.signIn();
-                console.log("Native login success, token received");
-                alert("NATIVE SUCCESS: Got token for " + user.email);
-
-                console.log("Linking with Firebase...");
                 const credential = GoogleAuthProvider.credential(user.authentication.idToken);
-                const result = await signInWithCredential(auth, credential);
-                alert("FIREBASE SUCCESS: Logged in as " + result.user.displayName);
-                return result;
+                return await signInWithCredential(auth, credential);
             } catch (err) {
-                debugLog("Native Google Login error: " + err);
-                alert("DETAILED ERROR: " + JSON.stringify(err, Object.getOwnPropertyNames(err)));
+                console.error("[AUTH] Native Login error:", err);
+                alert("Native Error: " + (err.message || "Unknown error"));
                 throw err;
             }
         } else {
-            console.log("Web platform detected. Using Popup flow...");
+            console.log("[AUTH] Web platform detected.");
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
             try {
-                return await signInWithPopup(auth, googleProvider);
-            } catch (err) {
-                console.error("Web Sign-In error:", err);
-                if (err.code === 'auth/popup-blocked') {
-                    alert("Popup blocked! Please allow popups for this site or try again.");
+                if (forcePopup) {
+                    console.log("[AUTH] Forcing Popup flow...");
+                    return await signInWithPopup(auth, googleProvider);
+                }
+
+                if (isMobile) {
+                    console.log("[AUTH] Mobile detected, using redirect...");
+                    setSyncStatus("Redirecting to Google...");
+                    return await signInWithRedirect(auth, googleProvider);
                 } else {
+                    // Desktop: Use Popup (most reliable across domains/incognito)
+                    console.log("[AUTH] Desktop detected, using popup...");
+                    try {
+                        return await signInWithPopup(auth, googleProvider);
+                    } catch (pErr) {
+                        // Only fallback to redirect if popup is strictly blocked/failed systemically
+                        console.error("[AUTH] Popup failed:", pErr);
+                        if (pErr.code === 'auth/popup-blocked') {
+                            alert("Popups are blocked. Please allow popups for this site or try again.");
+                        } else if (pErr.code === 'auth/popup-closed-by-user') {
+                            // User intentionally closed it, don't force redirect
+                            console.log("[AUTH] Popup closed by user.");
+                        } else {
+                            // For other errors, we might alert or throw
+                            alert("Login failed: " + pErr.message);
+                        }
+                        throw pErr;
+                    }
+                }
+            } catch (err) {
+                console.error("[AUTH] Web Sign-In error:", err);
+                if (err.code !== 'auth/popup-closed-by-user') {
                     alert("Sign-in error: " + err.message);
                 }
                 throw err;
@@ -70,43 +94,96 @@ export function AuthProvider({ children }) {
     }
 
     useEffect(() => {
-        // Handle redirect results if any
-        getRedirectResult(auth).then((result) => {
-            if (result) {
-                console.log("Redirect sign-in successful:", result.user.email);
-            }
-        }).catch((error) => {
-            console.error("Redirect sign-in error:", error);
-            if (error.code === 'auth/unauthorized-domain') {
-                alert("This domain is not authorized in Firebase Console. Please add " + window.location.hostname + " to Authorized Domains.");
-            }
-        });
+        console.log("[AUTH] useEffect started");
+        // Multi-phase sync status
+        setSyncStatus("Checking session...");
 
+        // Safety timeout: 10 seconds total to resolve or revert to login
+        const safetyTimeout = setTimeout(() => {
+            if (loading) {
+                console.warn("[AUTH] Safety timeout reached. Forcing UI load.");
+                setLoading(false);
+            }
+        }, 10000);
+
+        // Check if we are potentially in a redirect callback
+        const hasRedirectParams = window.location.search.includes('apiKey') ||
+            window.location.search.includes('oobCode') ||
+            window.location.hash.includes('access_token') ||
+            window.location.search.includes('state=');
+
+        console.log("[AUTH] Has redirect params:", hasRedirectParams);
+        console.log("[AUTH] Current URL:", window.location.href);
+
+        if (hasRedirectParams) {
+            setSyncStatus("Syncing account...");
+        }
+
+        // Handle redirect results 
+        console.log("[AUTH] Calling getRedirectResult...");
+        getRedirectResult(auth)
+            .then((result) => {
+                console.log("[AUTH] getRedirectResult resolved:", result ? result.user.email : "null");
+                if (result) {
+                    console.log("[AUTH] Redirect sign-in success for:", result.user.email);
+                    setSyncStatus("Loading profile...");
+                } else {
+                    console.log("[AUTH] getRedirectResult returned null");
+                }
+            })
+            .catch((error) => {
+                console.error("[AUTH] Redirect error:", error);
+                const domain = window.location.hostname;
+                if (error.code === 'auth/unauthorized-domain') {
+                    alert(`ACCESS DENIED: ${domain} is not authorized in Firebase Console.`);
+                } else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+                    alert(`Sync Error: ${error.message}`);
+                }
+                setLoading(false);
+            });
+
+        console.log("[AUTH] Setting up onAuthStateChanged listener...");
         const unsubscribe = onAuthStateChanged(auth, (user) => {
+            console.log("[AUTH] onAuthStateChanged fired. User:", user ? user.email : "null");
             setCurrentUser(user);
 
             if (user) {
+                setSyncStatus("Fetching profile...");
+                console.log("[AUTH] Fetching Firestore profile for:", user.uid);
                 const userDocRef = doc(db, "users", user.uid);
                 const unsubDoc = onSnapshot(userDocRef, (docSnap) => {
+                    console.log("[AUTH] Firestore snapshot received. Exists:", docSnap.exists());
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
+                        console.warn("[AUTH] User exists in Auth but not in Firestore");
                         setUserData(null);
                     }
+                    console.log("[AUTH] Setting loading to false (user authenticated)");
                     setLoading(false);
+                    clearTimeout(safetyTimeout);
                 }, (error) => {
-                    console.error("Error fetching user profile:", error);
+                    console.error("[AUTH] Firestore error:", error);
                     setLoading(false);
+                    clearTimeout(safetyTimeout);
                 });
 
                 return () => unsubDoc();
             } else {
+                console.log("[AUTH] No user authenticated");
                 setUserData(null);
+                // Always stop loading if no user, regardless of redirect params
+                console.log("[AUTH] Setting loading to false (no user)");
                 setLoading(false);
+                clearTimeout(safetyTimeout);
             }
         });
 
-        return unsubscribe;
+        return () => {
+            console.log("[AUTH] Cleaning up useEffect");
+            unsubscribe();
+            clearTimeout(safetyTimeout);
+        };
     }, []);
 
     const value = {
@@ -119,7 +196,49 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {loading ? (
+                <div style={{
+                    background: '#0c0c0c',
+                    height: '100vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--jager-orange)',
+                    fontFamily: 'sans-serif',
+                    padding: '2rem',
+                    textAlign: 'center'
+                }}>
+                    <div className="pulse-loader" style={{
+                        width: '60px', height: '60px',
+                        borderRadius: '50%', background: 'var(--jager-orange)',
+                        marginBottom: '2rem',
+                        boxShadow: '0 0 30px rgba(251, 177, 36, 0.4)'
+                    }} />
+                    <h2 style={{ margin: '0 0 0.5rem 0', letterSpacing: '2px' }}>SYNCHRONIZING</h2>
+                    <p style={{ color: '#666', margin: 0, fontSize: '0.9rem' }}>{syncStatus}</p>
+
+                    <button
+                        onClick={() => {
+                            clearTimeout(timeout);
+                            logout().then(() => window.location.reload());
+                        }}
+                        style={{
+                            marginTop: '3.5rem',
+                            background: 'none',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            color: '#444',
+                            padding: '10px 20px',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            letterSpacing: '1px'
+                        }}
+                    >
+                        RESET SESSION
+                    </button>
+                </div>
+            ) : children}
         </AuthContext.Provider>
     );
 }
