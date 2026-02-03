@@ -20,7 +20,7 @@ body {
   background: radial-gradient(circle at top center, #1a2e26 0%, var(--jager-dark) 60%);
   display: flex;
   justify-content: center;
-  padding-bottom: 90px;
+  padding-bottom: calc(90px + env(safe-area-inset-bottom));
   /* Space for bottom nav */
   -webkit-tap-highlight-color: transparent;
 }
@@ -110,7 +110,7 @@ h1 {
   -webkit-backdrop-filter: blur(20px);
   padding: 8px 12px;
   position: fixed;
-  bottom: 20px;
+  bottom: calc(30px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 32px);

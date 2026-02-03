@@ -1,8 +1,10 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
+import { getDistanceFromLatLonInM, inviteToEvent } from '../utils/events';
+import { Capacitor } from '@capacitor/core';
 
 // Robust SVG Icon as Data URL - High Contrast Version
 const stagSvg = `
@@ -37,6 +39,51 @@ const stagIcon = L.icon({
     iconSize: [50, 50],
     iconAnchor: [25, 25],
     popupAnchor: [0, -25]
+
+});
+
+// Event Icon (Green/Orange)
+// Event Icon (Premium 3D SVG)
+const eventSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#354e41" />
+      <stop offset="100%" stop-color="#1a2e25" />
+    </linearGradient>
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff" />
+      <stop offset="100%" stop-color="#fbb124" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  
+  <g filter="url(#shadow)">
+    <!-- Pin Shape -->
+    <path d="M50 2 C28 2 10 20 10 42 C10 70 50 98 50 98 C50 98 90 70 90 42 C90 20 72 2 50 2 Z" fill="url(#pinGrad)" stroke="#fbb124" stroke-width="2" />
+    
+    <!-- Inner Circle -->
+    <circle cx="50" cy="42" r="28" fill="#151515" />
+    
+    <!-- Glowing Star -->
+    <path d="M50 24 L56 38 L72 38 L59 48 L64 64 L50 54 L36 64 L41 48 L28 38 L44 38 Z" fill="url(#starGrad)" stroke="#fbb124" stroke-width="1.5" filter="url(#glow)" />
+  </g>
+</svg>`;
+
+const eventIcon = L.icon({
+    iconUrl: `data:image/svg+xml;base64,${btoa(eventSvg)}`,
+    iconSize: [60, 60],
+    iconAnchor: [30, 60],
+    popupAnchor: [0, -60]
 });
 
 function MapController({ center }) {
@@ -51,7 +98,7 @@ function MapController({ center }) {
     return null;
 }
 
-export default function DrinkMap({ drinks, userLocation }) {
+export default function DrinkMap({ drinks, userLocation, publicEvents = [], showEvents = true, onSelectEvent }) {
     const defaultCenter = [48.8566, 2.3522];
     let center = defaultCenter;
     const lastDrink = drinks.find(d => d.latitude && d.longitude);
@@ -112,6 +159,57 @@ export default function DrinkMap({ drinks, userLocation }) {
                         </Marker>
                     ) : null
                 ))}
+
+                {/* Public Events Markers */}
+                {publicEvents.map(event => {
+                    if (!showEvents || !event.location) return null;
+                    const distance = userLocation ? getDistanceFromLatLonInM(
+                        userLocation.latitude, userLocation.longitude,
+                        event.location.latitude, event.location.longitude
+                    ) : Infinity;
+                    const canJoin = distance <= 200; // 200 meters
+
+                    return (
+                        <Marker
+                            key={event.id}
+                            position={[event.location.latitude, event.location.longitude]}
+                            icon={eventIcon}
+                        >
+                            <Popup>
+                                <div style={{ textAlign: 'center', minWidth: '150px' }}>
+                                    <strong style={{ color: '#fbbf24', fontSize: '1.1rem' }}>{event.title}</strong>
+                                    <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
+                                        {format(new Date(event.date), 'MMM d, h:mm a')}
+                                    </div>
+                                    <div style={{ marginBottom: '8px', fontSize: '0.9rem' }}>
+                                        {distance < 1000 ? `${Math.round(distance)}m away` : `${(distance / 1000).toFixed(1)}km away`}
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            if (canJoin) {
+                                                // If already joined, just view. If not, auto-join logic could be here, 
+                                                // but let's just go to details and let details handle "Join" or just auto-add if we want.
+                                                // Actually, prompt here is nice.
+                                                onSelectEvent(event.id);
+                                            } else {
+                                                alert("You need to be within 200m to join this event!");
+                                            }
+                                        }}
+                                        style={{
+                                            background: canJoin ? '#fbbf24' : '#444',
+                                            color: canJoin ? 'black' : '#888',
+                                            border: 'none', padding: '8px 16px', borderRadius: '12px',
+                                            fontWeight: 'bold', width: '100%', cursor: canJoin ? 'pointer' : 'not-allowed'
+                                        }}
+                                    >
+                                        {canJoin ? "Check it out" : "Too far to join"}
+                                    </button>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    );
+                })}
             </MapContainer>
         </div>
     );

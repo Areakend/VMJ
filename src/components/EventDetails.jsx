@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink, removeParticipant } from '../utils/events';
 import { format } from 'date-fns';
-import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X } from 'lucide-react';
+import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X, LogIn } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
@@ -43,6 +43,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 return;
             }
             await inviteToEvent(eventId, friend.uid, friend.username);
+            alert("Invited!");
         } catch (e) {
             console.error(e);
             alert("Failed to invite");
@@ -145,8 +146,21 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
 
     if (!event) return <div style={{ color: 'white', textAlign: 'center', marginTop: '2rem' }}>Loading...</div>;
 
-    const myParticipantData = event.participants.find(p => p.uid === currentUser.uid);
+
+
+    // Check if I am a participant
+    const myParticipantData = event.participants?.find(p => p.uid === currentUser.uid);
+    const isParticipant = !!myParticipantData;
     const amIActive = myParticipantData?.status === 'active';
+
+    const handleJoin = async () => {
+        try {
+            await inviteToEvent(eventId, currentUser.uid, userData.username);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to join");
+        }
+    };
 
     // Calculate Leaderboard
     const leaderboard = {};
@@ -190,6 +204,8 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                             <Trash2 size={20} />
                         </button>
                     )}
+
+
                 </div>
                 <p style={{ color: '#888', margin: 0, marginBottom: '1.5rem' }}>{format(new Date(event.date), "EEEE, MMMM do, h:mm a")}</p>
 
@@ -205,35 +221,50 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem' }}>
-                    <button
-                        onClick={handleQuickShot}
-                        style={{
-                            flex: 2, background: 'linear-gradient(135deg, var(--jager-orange), #ff9f1a)', color: 'black',
-                            padding: '14px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '900', border: 'none',
-                            boxShadow: '0 4px 15px rgba(251, 177, 36, 0.3)'
-                        }}
-                    >
-                        <Beer size={20} /> Quick Shot
-                    </button>
-                    <button
-                        onClick={handleShareEvent}
-                        style={{
-                            flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white',
-                            padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold'
-                        }}
-                    >
-                        <Share2 size={18} /> Invite
-                    </button>
-                    <button
-                        onClick={() => setShowInvite(!showInvite)}
-                        style={{
-                            flex: 1, background: showInvite ? 'var(--jager-orange)' : 'rgba(255,255,255,0.05)',
-                            border: showInvite ? 'none' : '1px solid #444', color: showInvite ? 'black' : 'white',
-                            padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold'
-                        }}
-                    >
-                        <UserPlus size={18} /> {showInvite ? 'Close' : 'Crew'}
-                    </button>
+                    {!isParticipant ? (
+                        <button
+                            onClick={handleJoin}
+                            style={{
+                                width: '100%', background: 'linear-gradient(135deg, var(--jager-orange), #ff9f1a)', color: 'black',
+                                padding: '14px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '900', border: 'none',
+                                boxShadow: '0 4px 15px rgba(251, 177, 36, 0.3)'
+                            }}
+                        >
+                            <LogIn size={20} /> JOIN EVENT
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={handleQuickShot}
+                                style={{
+                                    flex: 2, background: 'linear-gradient(135deg, var(--jager-orange), #ff9f1a)', color: 'black',
+                                    padding: '14px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '900', border: 'none',
+                                    boxShadow: '0 4px 15px rgba(251, 177, 36, 0.3)'
+                                }}
+                            >
+                                <Beer size={20} /> Quick Shot
+                            </button>
+                            <button
+                                onClick={handleShareEvent}
+                                style={{
+                                    flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white',
+                                    padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold'
+                                }}
+                            >
+                                <Share2 size={18} /> Invite
+                            </button>
+                            <button
+                                onClick={() => setShowInvite(!showInvite)}
+                                style={{
+                                    flex: 1, background: showInvite ? 'var(--jager-orange)' : 'rgba(255,255,255,0.05)',
+                                    border: showInvite ? 'none' : '1px solid #444', color: showInvite ? 'black' : 'white',
+                                    padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold'
+                                }}
+                            >
+                                <UserPlus size={18} /> {showInvite ? 'Close' : 'Crew'}
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 <div style={{ borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
@@ -243,10 +274,12 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                         </span>
                         <button
                             onClick={() => handleToggleStatus(!amIActive)}
+                            disabled={!isParticipant}
                             style={{
                                 background: amIActive ? 'var(--jager-green)' : '#333',
                                 color: 'white', border: 'none', padding: '8px 16px', borderRadius: '20px',
-                                display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold'
+                                display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold',
+                                opacity: !isParticipant ? 0.5 : 1
                             }}
                         >
                             {amIActive ? <Unlock size={16} /> : <Lock size={16} />}
@@ -387,6 +420,8 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                     </div>
                 </div>
             )}
+
+
         </div>
     );
 }

@@ -1,8 +1,8 @@
-import React from 'react';
-import { Filter, Check, X } from 'lucide-react';
+import { useState } from 'react';
+import { Filter, Check, X, MapPin } from 'lucide-react';
 
-export default function MapFilter({ friends, selectedUids, onToggle, currentUserId }) {
-    const [isOpen, setIsOpen] = React.useState(false);
+export default function MapFilter({ friends, selectedUids, onToggle, currentUserId, showEvents, onToggleEvents }) {
+    const [isOpen, setIsOpen] = useState(false);
 
     const toggleAll = () => {
         const allUids = [currentUserId, ...friends.map(f => f.uid)];
@@ -60,7 +60,7 @@ export default function MapFilter({ friends, selectedUids, onToggle, currentUser
                     color: 'white'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#888' }}>Show Activity from:</h4>
+                        <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#888' }}>Map Layers</h4>
                         <button
                             onClick={() => setIsOpen(false)}
                             style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer' }}
@@ -68,6 +68,26 @@ export default function MapFilter({ friends, selectedUids, onToggle, currentUser
                             <X size={16} />
                         </button>
                     </div>
+
+                    {/* Events Toggle */}
+                    <div
+                        onClick={() => onToggleEvents(!showEvents)}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '10px', padding: '8px',
+                            borderRadius: '8px', background: showEvents ? 'rgba(251, 177, 36, 0.1)' : 'transparent',
+                            cursor: 'pointer', marginBottom: '12px', border: showEvents ? '1px solid #fbb124' : '1px solid #444'
+                        }}
+                    >
+                        <div style={{
+                            width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            {showEvents ? <Check size={14} color="#fbb124" /> : <div style={{ width: 14, height: 14, border: '1px solid #666', borderRadius: 4 }}></div>}
+                        </div>
+                        <span style={{ fontSize: '0.9rem', color: showEvents ? '#fbb124' : '#888' }}>Public Events</span>
+                    </div>
+
+                    <div style={{ height: '1px', background: '#333', margin: '8px 0 12px 0' }}></div>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#666' }}>Crew Activity</h4>
 
                     <button
                         onClick={toggleAll}

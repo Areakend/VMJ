@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight } from 'lucide-react'
+import { Beer, MapPin, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X, User } from 'lucide-react'
+import Sidebar from './components/Sidebar';
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
@@ -15,7 +16,7 @@ import EventDetails from './components/EventDetails'
 import CrewSelector from './components/CrewSelector'
 import CustomVolumeSelector from './components/CustomVolumeSelector'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest, subscribeToRequests } from './utils/storage'
-import { addEventDrink, subscribeToMyEvents, removeEventDrink } from './utils/events'
+import { addEventDrink, subscribeToMyEvents, removeEventDrink, subscribeToPublicEvents } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
@@ -163,6 +164,7 @@ function App() {
   const [requests, setRequests] = useState([]);
   const [selectedMapFilterBuddies, setSelectedMapFilterBuddies] = useState([]); // Array of {uid, username}
   const [mapSharedOnly, setMapSharedOnly] = useState(false);
+  const [mapShowEvents, setMapShowEvents] = useState(true);
   const [mapDrinks, setMapDrinks] = useState([]);
   const [drinkComment, setDrinkComment] = useState("");
   const [selectedBuddies, setSelectedBuddies] = useState([]); // Array of {uid, username}
@@ -172,10 +174,13 @@ function App() {
   const fileInputRef = useRef(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [activeEvents, setActiveEvents] = useState([]); // Events where I am status='active'
+  const [publicEvents, setPublicEvents] = useState([]); // All open public events
   const [showCrewModal, setShowCrewModal] = useState(false);
   const [showVolumeModal, setShowVolumeModal] = useState(false);
+  const [showMainHelp, setShowMainHelp] = useState(false);
   const [showActivityFilterModal, setShowActivityFilterModal] = useState(false);
   const [showMapFilterModal, setShowMapFilterModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
@@ -195,6 +200,9 @@ function App() {
         });
         setActiveEvents(active);
       });
+      const unsubPublic = subscribeToPublicEvents((events) => {
+        setPublicEvents(events);
+      });
 
       saveFcmToken(currentUser.uid).then(token => {
         if (token && Capacitor.getPlatform() !== 'web') {
@@ -207,6 +215,7 @@ function App() {
         unsubFriends();
         unsubRequest();
         unsubEvents();
+        unsubPublic();
       };
     }
   }, [currentUser]);
@@ -675,15 +684,17 @@ function App() {
     <>
       <header>
         <h1>Jäger Tracker</h1>
-        <div className="user-profile">
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-            <span className="user-name">{userData.username}</span>
-            <span style={{ fontSize: '0.6rem', color: '#666' }}>v0.2.0 (Stable Update)</span>
-          </div>
-          <button onClick={logout} className="logout-btn">
-            <LogOut size={12} /> Logout
-          </button>
-        </div>
+        <button
+          onClick={() => setShowSidebar(true)}
+          style={{
+            width: '40px', height: '40px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--jager-orange)', cursor: 'pointer'
+          }}
+        >
+          <User size={20} />
+        </button>
       </header>
 
       {/* Navigation Tabs */}
@@ -728,6 +739,10 @@ function App() {
 
       {view === 'friends' ? (
         <Friends />
+      ) : view === 'events' ? (
+        <EventsView currentUser={currentUser} userData={userData} friends={friends} onSelectEvent={(id) => { setSelectedEventId(id); setView('event-details'); }} />
+      ) : view === 'event-details' && selectedEventId ? (
+        <EventDetails eventId={selectedEventId} currentUser={currentUser} userData={userData} friends={friends} onBack={() => { setSelectedEventId(null); setView('events'); }} />
       ) : view === 'map' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {/* Map Filters Header */}
@@ -741,14 +756,29 @@ function App() {
               )}
             </div>
 
-            <div className="date-filter-row">
-              <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
-              <span style={{ color: '#444' }}>→</span>
-              <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
-              {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: 'transparent', border: 'none', color: '#fbb124', fontSize: '1.2rem' }}>&times;</button>}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'rgba(251, 177, 36, 0.05)', borderRadius: '12px', border: mapShowEvents ? '1px solid var(--jager-orange)' : '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                <div style={{ position: 'relative', width: '20px', height: '20px' }}>
+                  <input
+                    type="checkbox"
+                    checked={mapShowEvents}
+                    onChange={e => setMapShowEvents(e.target.checked)}
+                    style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
+                  />
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '6px',
+                    border: '2px solid ' + (mapShowEvents ? '#fbb124' : '#666'),
+                    background: mapShowEvents ? '#fbb124' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {mapShowEvents && <Check size={14} color="black" strokeWidth={3} />}
+                  </div>
+                </div>
+                <span style={{ fontSize: '0.9rem', color: mapShowEvents ? '#fbb124' : '#888', fontWeight: 'bold' }}>Show Public Events 🌟</span>
+              </label>
             </div>
 
-            <div style={{ marginTop: '12px' }}>
+            <div style={{ marginTop: '12px', marginBottom: '12px' }}>
               <button
                 onClick={() => setShowMapFilterModal(true)}
                 style={{
@@ -765,11 +795,11 @@ function App() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MapIcon size={16} color={selectedMapFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
+                  <Users size={16} color={selectedMapFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
                   <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
                     {selectedMapFilterBuddies.length > 0
-                      ? `Show activity from ${selectedMapFilterBuddies.length} members`
-                      : 'Select Crew to show on map'}
+                      ? `${selectedMapFilterBuddies.length} Crew Selected`
+                      : 'Select Crew'}
                   </span>
                 </div>
                 <ChevronRight size={16} color="#444" />
@@ -799,6 +829,15 @@ function App() {
                 </div>
               )}
             </div>
+
+            <div className="date-filter-row">
+              <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              <span style={{ color: '#444' }}>→</span>
+              <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: 'transparent', border: 'none', color: '#fbb124', fontSize: '1.2rem' }}>&times;</button>}
+            </div>
+
+
           </div>
 
           <div className="map-view-container" style={{ position: 'relative' }}>
@@ -815,7 +854,7 @@ function App() {
                   if (d.userId === currentUser.uid) {
                     return d.buddies && d.buddies.some(buddy => selectedMapFilterBuddies.some(sb => sb.uid === buddy.uid));
                   } else {
-                    // If it's a buddy's drink, I must be in their buddies list 
+                    // If it's a buddy's drink, I must be in their buddies list
                     // (and they must be in my selected list, which is already true by mapDrinks content)
                     return d.buddies && d.buddies.some(b => b.uid === currentUser.uid);
                   }
@@ -823,6 +862,9 @@ function App() {
                 return true;
               })}
               userLocation={locationState}
+              publicEvents={publicEvents}
+              showEvents={mapShowEvents}
+              onSelectEvent={(id) => { setSelectedEventId(id); setView('events'); }}
             />
           </div>
         </div>
@@ -1155,6 +1197,39 @@ function App() {
         />
       )}
 
+      {showMainHelp && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+          padding: '1.5rem', backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: '#1c1c1c', width: '100%', maxWidth: '340px', borderRadius: '24px',
+            padding: '1.5rem', border: '1px solid #333', boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--jager-orange)' }}>App Guide</h3>
+              <button onClick={() => setShowMainHelp(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}><X size={24} /></button>
+            </div>
+            <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              <p><strong>🍻 Quick Shot:</strong> Hit the big button to log a drink! It saves to your history and any <strong>open event</strong> you're in.</p>
+              <p><strong>👥 Crew:</strong> Tag friends before drinking! This logs a shot for <strong>YOU</strong> and <strong>THEM</strong>. (Great for buying rounds!).</p>
+              <p><strong>🔍 Filters:</strong> Use the "Filter History" button (or Map Filters) to see stats for specific crew members or dates.</p>
+              <p><strong>📍 Events:</strong> Join a public event or create your own to see a live leaderboard and map of everyone's shots!</p>
+            </div>
+            <button
+              onClick={() => setShowMainHelp(false)}
+              style={{
+                width: '100%', marginTop: '1rem', padding: '12px', background: '#333', color: 'white',
+                border: 'none', borderRadius: '12px', fontWeight: 'bold'
+              }}
+            >
+              Cheers! 🦌
+            </button>
+          </div>
+        </div>
+      )}
+
       {showVolumeModal && (
         <CustomVolumeSelector
           volume={volume}
@@ -1162,6 +1237,15 @@ function App() {
           onClose={() => setShowVolumeModal(false)}
         />
       )}
+
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        userData={userData}
+        totalDrinks={totalDrinks}
+        onLogout={logout}
+        onShowHelp={() => setShowMainHelp(true)}
+      />
     </>
   );
 }
