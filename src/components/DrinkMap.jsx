@@ -43,24 +43,22 @@ const stagIcon = L.icon({
 });
 
 // Event Icon (Green/Orange)
+// Event Icon (Star)
 const eventSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.5"/>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.5"/>
     </filter>
   </defs>
-  <g filter="url(#shadow)">
-    <circle cx="60" cy="60" r="54" fill="#354e41" stroke="#fbbf24" stroke-width="4" />
-    <text x="60" y="75" font-size="50" text-anchor="middle" fill="#fbbf24" font-weight="bold">E</text>
-  </g>
+  <path d="M50 5 L63 38 L98 38 L70 59 L80 94 L50 75 L20 94 L30 59 L2 38 L37 38 Z" fill="#fbbf24" stroke="#354e41" stroke-width="3" filter="url(#shadow)"/>
 </svg>`;
 
 const eventIcon = L.icon({
     iconUrl: `data:image/svg+xml;base64,${btoa(eventSvg)}`,
-    iconSize: [50, 50],
-    iconAnchor: [25, 25],
-    popupAnchor: [0, -25]
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20]
 });
 
 function MapController({ center }) {
@@ -75,7 +73,7 @@ function MapController({ center }) {
     return null;
 }
 
-export default function DrinkMap({ drinks, userLocation, publicEvents = [], onSelectEvent }) {
+export default function DrinkMap({ drinks, userLocation, publicEvents = [], showEvents = true, onSelectEvent }) {
     const defaultCenter = [48.8566, 2.3522];
     let center = defaultCenter;
     const lastDrink = drinks.find(d => d.latitude && d.longitude);
@@ -139,7 +137,7 @@ export default function DrinkMap({ drinks, userLocation, publicEvents = [], onSe
 
                 {/* Public Events Markers */}
                 {publicEvents.map(event => {
-                    if (!event.location) return null;
+                    if (!showEvents || !event.location) return null;
                     const distance = userLocation ? getDistanceFromLatLonInM(
                         userLocation.latitude, userLocation.longitude,
                         event.location.latitude, event.location.longitude

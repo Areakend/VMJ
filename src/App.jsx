@@ -163,6 +163,7 @@ function App() {
   const [requests, setRequests] = useState([]);
   const [selectedMapFilterBuddies, setSelectedMapFilterBuddies] = useState([]); // Array of {uid, username}
   const [mapSharedOnly, setMapSharedOnly] = useState(false);
+  const [mapShowEvents, setMapShowEvents] = useState(true);
   const [mapDrinks, setMapDrinks] = useState([]);
   const [drinkComment, setDrinkComment] = useState("");
   const [selectedBuddies, setSelectedBuddies] = useState([]); // Array of {uid, username}
@@ -757,60 +758,28 @@ function App() {
               {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: 'transparent', border: 'none', color: '#fbb124', fontSize: '1.2rem' }}>&times;</button>}
             </div>
 
-            <div style={{ marginTop: '12px' }}>
-              <button
-                onClick={() => setShowMapFilterModal(true)}
-                style={{
-                  width: '100%',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: '10px 16px',
-                  borderRadius: '12px',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MapIcon size={16} color={selectedMapFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
-                    {selectedMapFilterBuddies.length > 0
-                      ? `Show activity from ${selectedMapFilterBuddies.length} members`
-                      : 'Select Crew to show on map'}
-                  </span>
-                </div>
-                <ChevronRight size={16} color="#444" />
-              </button>
-              {selectedMapFilterBuddies.length > 0 && (
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
-                  {selectedMapFilterBuddies.map(b => (
-                    <span
-                      key={b.uid}
-                      onClick={() => setSelectedMapFilterBuddies(selectedMapFilterBuddies.filter(fb => fb.uid !== b.uid))}
-                      style={{
-                        fontSize: '0.7rem', background: 'rgba(251, 177, 36, 0.08)',
-                        color: '#fbb124', padding: '3px 8px', borderRadius: '10px',
-                        border: '1px solid rgba(251, 177, 36, 0.2)', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '4px'
-                      }}
-                    >
-                      {b.username} &times;
-                    </span>
-                  ))}
-                  <button
-                    onClick={() => setSelectedMapFilterBuddies([])}
-                    style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.7rem', padding: '3px 8px' }}
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
-            </div>
+
           </div>
 
           <div className="map-view-container" style={{ position: 'relative' }}>
+            <MapFilter
+              friends={friends}
+              currentUserId={currentUser.uid}
+              selectedUids={selectedMapFilterBuddies.map(b => b.uid)}
+              showEvents={mapShowEvents}
+              onToggleEvents={setMapShowEvents}
+              onToggle={(uids) => {
+                const newSelection = [];
+                uids.forEach(uid => {
+                  if (uid === currentUser.uid) newSelection.push({ uid, username: userData.username });
+                  else {
+                    const f = friends.find(fr => fr.uid === uid);
+                    if (f) newSelection.push({ uid: f.uid, username: f.username });
+                  }
+                });
+                setSelectedMapFilterBuddies(newSelection);
+              }}
+            />
             <DrinkMap
               key={view + selectedMapFilterBuddies.length + startDate + endDate}
               drinks={mapDrinks.filter(d => {
@@ -833,6 +802,7 @@ function App() {
               })}
               userLocation={locationState}
               publicEvents={publicEvents}
+              showEvents={mapShowEvents}
               onSelectEvent={(id) => { setSelectedEventId(id); setView('events'); }}
             />
           </div>
