@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink, removeParticipant } from '../utils/events';
 import { format } from 'date-fns';
-import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X, HelpCircle, LogIn } from 'lucide-react';
+import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X, CircleHelp, LogIn } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
@@ -205,11 +205,12 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                             <Trash2 size={20} />
                         </button>
                     )}
+
                     <button
                         onClick={() => setShowHelp(true)}
                         style={{ background: 'transparent', border: 'none', color: '#888', padding: '8px', marginLeft: 'auto' }}
                     >
-                        <HelpCircle size={20} />
+                        <CircleHelp size={20} />
                     </button>
                 </div>
                 <p style={{ color: '#888', margin: 0, marginBottom: '1.5rem' }}>{format(new Date(event.date), "EEEE, MMMM do, h:mm a")}</p>

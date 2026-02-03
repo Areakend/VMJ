@@ -210,7 +210,6 @@ function App() {
         unsubDrinks();
         unsubFriends();
         unsubRequest();
-        unsubRequest();
         unsubEvents();
         unsubPublic();
       };
