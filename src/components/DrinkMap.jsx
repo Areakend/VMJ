@@ -52,7 +52,7 @@ const eventSvg = `
   </defs>
   <g filter="url(#shadow)">
     <circle cx="60" cy="60" r="54" fill="#354e41" stroke="#fbbf24" stroke-width="4" />
-    <text x="60" y="75" font-size="50" text-anchor="middle" fill="#fbbf24" font-weight="bold">🎉</text>
+    <text x="60" y="75" font-size="50" text-anchor="middle" fill="#fbbf24" font-weight="bold">E</text>
   </g>
 </svg>`;
 
