@@ -43,11 +43,46 @@ const stagIcon = L.icon({
 });
 
 // Event Icon (Green/Orange)
-// Event Icon (Custom Image)
+// Event Icon (Premium 3D SVG)
+const eventSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#354e41" />
+      <stop offset="100%" stop-color="#1a2e25" />
+    </linearGradient>
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff" />
+      <stop offset="100%" stop-color="#fbb124" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  
+  <g filter="url(#shadow)">
+    <!-- Pin Shape -->
+    <path d="M50 2 C28 2 10 20 10 42 C10 70 50 98 50 98 C50 98 90 70 90 42 C90 20 72 2 50 2 Z" fill="url(#pinGrad)" stroke="#fbb124" stroke-width="2" />
+    
+    <!-- Inner Circle -->
+    <circle cx="50" cy="42" r="28" fill="#151515" />
+    
+    <!-- Glowing Star -->
+    <path d="M50 24 L56 38 L72 38 L59 48 L64 64 L50 54 L36 64 L41 48 L28 38 L44 38 Z" fill="url(#starGrad)" stroke="#fbb124" stroke-width="1.5" filter="url(#glow)" />
+  </g>
+</svg>`;
+
 const eventIcon = L.icon({
-    iconUrl: '/event-pin.png',
-    iconSize: [60, 60], // Larger for the nice 3D effect
-    iconAnchor: [30, 60], // Bottom center anchor roughly
+    iconUrl: `data:image/svg+xml;base64,${btoa(eventSvg)}`,
+    iconSize: [60, 60],
+    iconAnchor: [30, 60],
     popupAnchor: [0, -60]
 });
 
