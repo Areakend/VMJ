@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight } from 'lucide-react'
+import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
@@ -751,6 +751,80 @@ function App() {
               )}
             </div>
 
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'rgba(251, 177, 36, 0.05)', borderRadius: '12px', border: mapShowEvents ? '1px solid var(--jager-orange)' : '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                <div style={{ position: 'relative', width: '20px', height: '20px' }}>
+                  <input
+                    type="checkbox"
+                    checked={mapShowEvents}
+                    onChange={e => setMapShowEvents(e.target.checked)}
+                    style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
+                  />
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '6px',
+                    border: '2px solid ' + (mapShowEvents ? '#fbb124' : '#666'),
+                    background: mapShowEvents ? '#fbb124' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {mapShowEvents && <Check size={14} color="black" strokeWidth={3} />}
+                  </div>
+                </div>
+                <span style={{ fontSize: '0.9rem', color: mapShowEvents ? '#fbb124' : '#888', fontWeight: 'bold' }}>Show Public Events 🌟</span>
+              </label>
+            </div>
+
+            <div style={{ marginTop: '12px', marginBottom: '12px' }}>
+              <button
+                onClick={() => setShowMapFilterModal(true)}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={16} color={selectedMapFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                    {selectedMapFilterBuddies.length > 0
+                      ? `${selectedMapFilterBuddies.length} Crew Selected`
+                      : 'Select Crew'}
+                  </span>
+                </div>
+                <ChevronRight size={16} color="#444" />
+              </button>
+              {selectedMapFilterBuddies.length > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
+                  {selectedMapFilterBuddies.map(b => (
+                    <span
+                      key={b.uid}
+                      onClick={() => setSelectedMapFilterBuddies(selectedMapFilterBuddies.filter(fb => fb.uid !== b.uid))}
+                      style={{
+                        fontSize: '0.7rem', background: 'rgba(251, 177, 36, 0.08)',
+                        color: '#fbb124', padding: '3px 8px', borderRadius: '10px',
+                        border: '1px solid rgba(251, 177, 36, 0.2)', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '4px'
+                      }}
+                    >
+                      {b.username} &times;
+                    </span>
+                  ))}
+                  <button
+                    onClick={() => setSelectedMapFilterBuddies([])}
+                    style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.7rem', padding: '3px 8px' }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="date-filter-row">
               <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
               <span style={{ color: '#444' }}>→</span>
@@ -762,24 +836,6 @@ function App() {
           </div>
 
           <div className="map-view-container" style={{ position: 'relative' }}>
-            <MapFilter
-              friends={friends}
-              currentUserId={currentUser.uid}
-              selectedUids={selectedMapFilterBuddies.map(b => b.uid)}
-              showEvents={mapShowEvents}
-              onToggleEvents={setMapShowEvents}
-              onToggle={(uids) => {
-                const newSelection = [];
-                uids.forEach(uid => {
-                  if (uid === currentUser.uid) newSelection.push({ uid, username: userData.username });
-                  else {
-                    const f = friends.find(fr => fr.uid === uid);
-                    if (f) newSelection.push({ uid: f.uid, username: f.username });
-                  }
-                });
-                setSelectedMapFilterBuddies(newSelection);
-              }}
-            />
             <DrinkMap
               key={view + selectedMapFilterBuddies.length + startDate + endDate}
               drinks={mapDrinks.filter(d => {
