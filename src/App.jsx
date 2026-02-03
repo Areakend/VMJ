@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check } from 'lucide-react'
+import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
@@ -176,6 +176,7 @@ function App() {
   const [publicEvents, setPublicEvents] = useState([]); // All open public events
   const [showCrewModal, setShowCrewModal] = useState(false);
   const [showVolumeModal, setShowVolumeModal] = useState(false);
+  const [showMainHelp, setShowMainHelp] = useState(false);
   const [showActivityFilterModal, setShowActivityFilterModal] = useState(false);
   const [showMapFilterModal, setShowMapFilterModal] = useState(false);
 
@@ -680,7 +681,12 @@ function App() {
   return (
     <>
       <header>
-        <h1>Jäger Tracker</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h1>Jäger Tracker</h1>
+          <button onClick={() => setShowMainHelp(true)} style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', padding: '4px' }}>
+            <CircleHelp size={18} />
+          </button>
+        </div>
         <div className="user-profile">
           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
             <span className="user-name">{userData.username}</span>
@@ -1190,6 +1196,39 @@ function App() {
           sharedOnly={mapSharedOnly}
           onToggleShared={setMapSharedOnly}
         />
+      )}
+
+      {showMainHelp && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+          padding: '1.5rem', backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: '#1c1c1c', width: '100%', maxWidth: '340px', borderRadius: '24px',
+            padding: '1.5rem', border: '1px solid #333', boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--jager-orange)' }}>App Guide</h3>
+              <button onClick={() => setShowMainHelp(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}><X size={24} /></button>
+            </div>
+            <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              <p><strong>🍻 Quick Shot:</strong> Hit the big button to log a drink! It saves to your history and any <strong>open event</strong> you're in.</p>
+              <p><strong>👥 Crew:</strong> Tag friends before drinking! This logs a shot for <strong>YOU</strong> and <strong>THEM</strong>. (Great for buying rounds!).</p>
+              <p><strong>🔍 Filters:</strong> Use the "Filter History" button (or Map Filters) to see stats for specific crew members or dates.</p>
+              <p><strong>📍 Events:</strong> Join a public event or create your own to see a live leaderboard and map of everyone's shots!</p>
+            </div>
+            <button
+              onClick={() => setShowMainHelp(false)}
+              style={{
+                width: '100%', marginTop: '1rem', padding: '12px', background: '#333', color: 'white',
+                border: 'none', borderRadius: '12px', fontWeight: 'bold'
+              }}
+            >
+              Cheers! 🦌
+            </button>
+          </div>
+        </div>
       )}
 
       {showVolumeModal && (

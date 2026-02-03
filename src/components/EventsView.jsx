@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { subscribeToMyEvents, createEvent } from '../utils/events';
 import { getCurrentLocation } from '../utils/location';
-import { Calendar, Plus, Users, ChevronRight, Trophy, MapPin } from 'lucide-react';
+import { Calendar, Plus, Users, ChevronRight, Trophy, MapPin, CircleHelp, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function EventsView({ currentUser, userData, friends, onSelectEvent }) {
     const [events, setEvents] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
 
     // Create Form State
     const [newTitle, setNewTitle] = useState('');
@@ -62,7 +63,12 @@ export default function EventsView({ currentUser, userData, friends, onSelectEve
     return (
         <div style={{ paddingBottom: '100px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Events</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Events</h2>
+                    <button onClick={() => setShowHelp(true)} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', padding: '4px' }}>
+                        <CircleHelp size={20} />
+                    </button>
+                </div>
                 <button
                     onClick={() => setShowCreate(true)}
                     className="premium-button"
@@ -197,6 +203,40 @@ export default function EventsView({ currentUser, userData, friends, onSelectEve
                     ))
                 )}
             </div>
+            {/* Help Modal */}
+            {showHelp && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+                    padding: '1.5rem', backdropFilter: 'blur(5px)'
+                }}>
+                    <div style={{
+                        background: '#1c1c1c', width: '100%', maxWidth: '340px', borderRadius: '24px',
+                        padding: '1.5rem', border: '1px solid #333', boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, color: 'var(--jager-orange)' }}>How Events Work</h3>
+                            <button onClick={() => setShowHelp(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}><X size={24} /></button>
+                        </div>
+                        <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                            <p><strong>🦌 Gathering the Herd:</strong> Events are temporary sessions to track shots with a group.</p>
+                            <p><strong>📍 Public Events:</strong> Located on the map. Join if you are nearby (200m)!</p>
+                            <p><strong>🍻 Adding Drinks:</strong> Any drink added via the **Main Menu** is automatically added to **ANY open event** you are part of. Make sure to **close** any event you are not currently logged into. You can re-open it anytime!</p>
+                            <p><strong>🔒 Status:</strong> Toggle "Open/Closed" to stop mistakenly adding shots to this event while you drink elsewhere.</p>
+                            <p><strong>👑 Creator:</strong> Only the creator can delete the event or close it for everyone.</p>
+                        </div>
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            style={{
+                                width: '100%', marginTop: '1rem', padding: '12px', background: '#333', color: 'white',
+                                border: 'none', borderRadius: '12px', fontWeight: 'bold'
+                            }}
+                        >
+                            Got it!
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
