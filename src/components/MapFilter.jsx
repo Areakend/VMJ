@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Filter, Check, X, MapPin } from 'lucide-react';
 
 export default function MapFilter({ friends, selectedUids, onToggle, currentUserId, showEvents, onToggleEvents }) {
-    const [isOpen, setIsOpen] = React.useState(false);
+    const [isOpen, setIsOpen] = useState(false);
 
     const toggleAll = () => {
         const allUids = [currentUserId, ...friends.map(f => f.uid)];
