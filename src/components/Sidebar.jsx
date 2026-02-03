@@ -84,7 +84,7 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                         <LogOut size={20} /> Logout
                     </button>
                     <div style={{ textAlign: 'center', marginTop: '1rem', color: '#444', fontSize: '0.7rem' }}>
-                        v0.2.0 (Stable)
+                        v0.2.1 (Stable)
                     </div>
                 </div>
             </div>
