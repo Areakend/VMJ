@@ -15,7 +15,7 @@ import EventDetails from './components/EventDetails'
 import CrewSelector from './components/CrewSelector'
 import CustomVolumeSelector from './components/CustomVolumeSelector'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest, subscribeToRequests } from './utils/storage'
-import { addEventDrink, subscribeToMyEvents, removeEventDrink } from './utils/events'
+import { addEventDrink, subscribeToMyEvents, removeEventDrink, subscribeToPublicEvents } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
@@ -172,6 +172,7 @@ function App() {
   const fileInputRef = useRef(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [activeEvents, setActiveEvents] = useState([]); // Events where I am status='active'
+  const [publicEvents, setPublicEvents] = useState([]); // All open public events
   const [showCrewModal, setShowCrewModal] = useState(false);
   const [showVolumeModal, setShowVolumeModal] = useState(false);
   const [showActivityFilterModal, setShowActivityFilterModal] = useState(false);
@@ -195,6 +196,9 @@ function App() {
         });
         setActiveEvents(active);
       });
+      const unsubPublic = subscribeToPublicEvents((events) => {
+        setPublicEvents(events);
+      });
 
       saveFcmToken(currentUser.uid).then(token => {
         if (token && Capacitor.getPlatform() !== 'web') {
@@ -206,7 +210,9 @@ function App() {
         unsubDrinks();
         unsubFriends();
         unsubRequest();
+        unsubRequest();
         unsubEvents();
+        unsubPublic();
       };
     }
   }, [currentUser]);
@@ -728,6 +734,10 @@ function App() {
 
       {view === 'friends' ? (
         <Friends />
+      ) : view === 'events' ? (
+        <EventsView currentUser={currentUser} userData={userData} friends={friends} onSelectEvent={(id) => { setSelectedEventId(id); setView('event-details'); }} />
+      ) : view === 'event-details' && selectedEventId ? (
+        <EventDetails eventId={selectedEventId} currentUser={currentUser} userData={userData} friends={friends} onBack={() => { setSelectedEventId(null); setView('events'); }} />
       ) : view === 'map' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {/* Map Filters Header */}
@@ -823,6 +833,8 @@ function App() {
                 return true;
               })}
               userLocation={locationState}
+              publicEvents={publicEvents}
+              onSelectEvent={(id) => { setSelectedEventId(id); setView('events'); }}
             />
           </div>
         </div>

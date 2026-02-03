@@ -1,8 +1,10 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
+import { getDistanceFromLatLonInM, inviteToEvent } from '../utils/events';
+import { Capacitor } from '@capacitor/core';
 
 // Robust SVG Icon as Data URL - High Contrast Version
 const stagSvg = `
@@ -37,6 +39,28 @@ const stagIcon = L.icon({
     iconSize: [50, 50],
     iconAnchor: [25, 25],
     popupAnchor: [0, -25]
+
+});
+
+// Event Icon (Green/Orange)
+const eventSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <circle cx="60" cy="60" r="54" fill="#354e41" stroke="#fbbf24" stroke-width="4" />
+    <text x="60" y="75" font-size="50" text-anchor="middle" fill="#fbbf24" font-weight="bold">🎉</text>
+  </g>
+</svg>`;
+
+const eventIcon = L.icon({
+    iconUrl: `data:image/svg+xml;base64,${btoa(eventSvg)}`,
+    iconSize: [50, 50],
+    iconAnchor: [25, 25],
+    popupAnchor: [0, -25]
 });
 
 function MapController({ center }) {
@@ -51,7 +75,7 @@ function MapController({ center }) {
     return null;
 }
 
-export default function DrinkMap({ drinks, userLocation }) {
+export default function DrinkMap({ drinks, userLocation, publicEvents = [], onSelectEvent }) {
     const defaultCenter = [48.8566, 2.3522];
     let center = defaultCenter;
     const lastDrink = drinks.find(d => d.latitude && d.longitude);
@@ -112,6 +136,57 @@ export default function DrinkMap({ drinks, userLocation }) {
                         </Marker>
                     ) : null
                 ))}
+
+                {/* Public Events Markers */}
+                {publicEvents.map(event => {
+                    if (!event.location) return null;
+                    const distance = userLocation ? getDistanceFromLatLonInM(
+                        userLocation.latitude, userLocation.longitude,
+                        event.location.latitude, event.location.longitude
+                    ) : Infinity;
+                    const canJoin = distance <= 200; // 200 meters
+
+                    return (
+                        <Marker
+                            key={event.id}
+                            position={[event.location.latitude, event.location.longitude]}
+                            icon={eventIcon}
+                        >
+                            <Popup>
+                                <div style={{ textAlign: 'center', minWidth: '150px' }}>
+                                    <strong style={{ color: '#fbbf24', fontSize: '1.1rem' }}>{event.title}</strong>
+                                    <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
+                                        {format(new Date(event.date), 'MMM d, h:mm a')}
+                                    </div>
+                                    <div style={{ marginBottom: '8px', fontSize: '0.9rem' }}>
+                                        {distance < 1000 ? `${Math.round(distance)}m away` : `${(distance / 1000).toFixed(1)}km away`}
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            if (canJoin) {
+                                                // If already joined, just view. If not, auto-join logic could be here, 
+                                                // but let's just go to details and let details handle "Join" or just auto-add if we want.
+                                                // Actually, prompt here is nice.
+                                                onSelectEvent(event.id);
+                                            } else {
+                                                alert("You need to be within 200m to join this event!");
+                                            }
+                                        }}
+                                        style={{
+                                            background: canJoin ? '#fbbf24' : '#444',
+                                            color: canJoin ? 'black' : '#888',
+                                            border: 'none', padding: '8px 16px', borderRadius: '12px',
+                                            fontWeight: 'bold', width: '100%', cursor: canJoin ? 'pointer' : 'not-allowed'
+                                        }}
+                                    >
+                                        {canJoin ? "Check it out" : "Too far to join"}
+                                    </button>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    );
+                })}
             </MapContainer>
         </div>
     );

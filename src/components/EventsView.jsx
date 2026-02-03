@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { subscribeToMyEvents, createEvent } from '../utils/events';
-import { Calendar, Plus, Users, ChevronRight, Trophy } from 'lucide-react';
+import { getCurrentLocation } from '../utils/location';
+import { Calendar, Plus, Users, ChevronRight, Trophy, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function EventsView({ currentUser, userData, friends, onSelectEvent }) {
@@ -10,6 +11,9 @@ export default function EventsView({ currentUser, userData, friends, onSelectEve
     // Create Form State
     const [newTitle, setNewTitle] = useState('');
     const [newDate, setNewDate] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+    const [isPublic, setIsPublic] = useState(false);
+    const [eventLocation, setEventLocation] = useState(null); // { latitude, longitude }
+    const [isLocating, setIsLocating] = useState(false);
 
     useEffect(() => {
         if (currentUser) {
@@ -21,11 +25,37 @@ export default function EventsView({ currentUser, userData, friends, onSelectEve
     const handleCreate = async (e) => {
         e.preventDefault();
         try {
-            await createEvent(currentUser.uid, userData.username, newTitle, newDate);
+            await createEvent(currentUser.uid, userData.username, newTitle, newDate, isPublic, eventLocation);
             setShowCreate(false);
             setNewTitle('');
+            setIsPublic(false);
+            setEventLocation(null);
         } catch (err) {
             alert("Error creating event");
+        }
+    };
+
+    const togglePublic = async (e) => {
+        const checked = e.target.checked;
+        setIsPublic(checked);
+        if (checked) {
+            setIsLocating(true);
+            try {
+                const loc = await getCurrentLocation();
+                setEventLocation({
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    address: null // Could reverse geocode if needed
+                });
+            } catch (err) {
+                console.error("Loc error", err);
+                alert("Could not get location. Event will not be on map.");
+                setIsPublic(false); // Revert
+            } finally {
+                setIsLocating(false);
+            }
+        } else {
+            setEventLocation(null);
         }
     };
 
@@ -74,6 +104,26 @@ export default function EventsView({ currentUser, userData, friends, onSelectEve
                                 onChange={e => setNewDate(e.target.value)}
                                 required
                             />
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem', background: 'rgba(251, 177, 36, 0.05)', padding: '12px', borderRadius: '12px', border: isPublic ? '1px solid var(--jager-orange)' : '1px solid transparent' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <MapPin size={18} color={isPublic ? 'var(--jager-orange)' : '#666'} />
+                                    <div>
+                                        <span style={{ fontWeight: 'bold', color: isPublic ? 'var(--jager-orange)' : 'white' }}>Public Event</span>
+                                        <div style={{ fontSize: '0.75rem', color: '#888' }}>Visible to everyone on the map</div>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={isPublic}
+                                    onChange={togglePublic}
+                                    style={{ transform: 'scale(1.2)' }}
+                                />
+                            </label>
+                            {isLocating && <div style={{ fontSize: '0.75rem', color: '#fbb124', marginTop: '4px' }}>📍 Acquiring location...</div>}
+                            {eventLocation && <div style={{ fontSize: '0.75rem', color: '#var(--jager-green)', marginTop: '4px' }}>✅ Location set</div>}
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
                             <button
