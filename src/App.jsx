@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, LogOut, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X } from 'lucide-react'
+import { Beer, MapPin, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X, User } from 'lucide-react'
+import Sidebar from './components/Sidebar';
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
@@ -179,6 +180,7 @@ function App() {
   const [showMainHelp, setShowMainHelp] = useState(false);
   const [showActivityFilterModal, setShowActivityFilterModal] = useState(false);
   const [showMapFilterModal, setShowMapFilterModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
@@ -681,21 +683,18 @@ function App() {
   return (
     <>
       <header>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h1>Jäger Tracker</h1>
-          <button onClick={() => setShowMainHelp(true)} style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', padding: '4px' }}>
-            <CircleHelp size={18} />
-          </button>
-        </div>
-        <div className="user-profile">
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-            <span className="user-name">{userData.username}</span>
-            <span style={{ fontSize: '0.6rem', color: '#666' }}>v0.2.0 (Stable Update)</span>
-          </div>
-          <button onClick={logout} className="logout-btn">
-            <LogOut size={12} /> Logout
-          </button>
-        </div>
+        <h1>Jäger Tracker</h1>
+        <button
+          onClick={() => setShowSidebar(true)}
+          style={{
+            width: '40px', height: '40px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--jager-orange)', cursor: 'pointer'
+          }}
+        >
+          <User size={20} />
+        </button>
       </header>
 
       {/* Navigation Tabs */}
@@ -855,7 +854,7 @@ function App() {
                   if (d.userId === currentUser.uid) {
                     return d.buddies && d.buddies.some(buddy => selectedMapFilterBuddies.some(sb => sb.uid === buddy.uid));
                   } else {
-                    // If it's a buddy's drink, I must be in their buddies list 
+                    // If it's a buddy's drink, I must be in their buddies list
                     // (and they must be in my selected list, which is already true by mapDrinks content)
                     return d.buddies && d.buddies.some(b => b.uid === currentUser.uid);
                   }
@@ -1238,6 +1237,15 @@ function App() {
           onClose={() => setShowVolumeModal(false)}
         />
       )}
+
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        userData={userData}
+        totalDrinks={totalDrinks}
+        onLogout={logout}
+        onShowHelp={() => setShowMainHelp(true)}
+      />
     </>
   );
 }
