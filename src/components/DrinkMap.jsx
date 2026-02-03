@@ -43,22 +43,12 @@ const stagIcon = L.icon({
 });
 
 // Event Icon (Green/Orange)
-// Event Icon (Star)
-const eventSvg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <filter id="shadow">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.5"/>
-    </filter>
-  </defs>
-  <path d="M50 5 L63 38 L98 38 L70 59 L80 94 L50 75 L20 94 L30 59 L2 38 L37 38 Z" fill="#fbbf24" stroke="#354e41" stroke-width="3" filter="url(#shadow)"/>
-</svg>`;
-
+// Event Icon (Custom Image)
 const eventIcon = L.icon({
-    iconUrl: `data:image/svg+xml;base64,${btoa(eventSvg)}`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-    popupAnchor: [0, -20]
+    iconUrl: '/event-pin.png',
+    iconSize: [60, 60], // Larger for the nice 3D effect
+    iconAnchor: [30, 60], // Bottom center anchor roughly
+    popupAnchor: [0, -60]
 });
 
 function MapController({ center }) {
