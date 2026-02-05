@@ -66,6 +66,6 @@ describe('Sidebar component', () => {
     it('displays version number', () => {
         render(<Sidebar {...mockProps} />);
 
-        expect(screen.getByText(/v0\.2\.1/)).toBeInTheDocument();
+        expect(screen.getByText(/v0\.3\.1/)).toBeInTheDocument();
     });
 });

@@ -2,6 +2,18 @@
 
 All notable changes to the Jäger Tracker (ViteMonJager) project will be documented in this file.
 
+## [0.3.1] - 2026-02-05 (Social & UX Update)
+
+### Added
+- **Social Feed**: Brand new "Feed" tab to see friends' shots in real-time.
+- **Interactions**: Users can now react with emojis (🍻 🎉 🔥 😵) and comment on friends' drinks.
+- **Deep Linking**: Push notifications now link directly to specific drinks in the feed, with auto-scroll and highlight.
+- **Keyboard Optimization**: The navigation bar now automatically hides when the keyboard is open on mobile to prevent overlapping input fields.
+
+### Fixed
+- **UI Consistency**: Fixed the send icon shape in the feed to remain perfectly round on all devices.
+- **Performance**: Optimized the social feed to only subscribe to comments when expanded.
+
 ## [0.2.0] - 2026-02-01 (Stable Release)
 
 ### Added

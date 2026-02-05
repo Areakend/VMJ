@@ -35,7 +35,9 @@ exports.onNotificationCreated = onDocumentCreated("users/{uid}/notifications/{no
             },
             data: {
                 click_action: "FLUTTER_NOTIFICATION_CLICK", // Standard for some plugins
-                drinkName: data.drinkName || "Jäger"
+                drinkName: data.drinkName || "Jäger",
+                drinkId: data.drinkId || "",
+                drinkOwnerId: data.drinkOwnerId || ""
             },
             token: fcmToken,
             android: {
