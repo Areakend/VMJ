@@ -11,14 +11,34 @@ service cloud.firestore {
     function isValidUsername(username) {
       return username.size() >= 3 && username.size() <= 15 && username.matches('^[a-zA-Z0-9_]+$');
     }
+    // Check if current user is friends with target user
+    function isFriend(targetUid) {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(targetUid));
+    }
 
     // User profiles and basic data
     match /users/{uid} {
       allow read: if isSignedIn(); // Allow reading profiles for social features
       allow write: if isOwner(uid);
 
+      // Drinks - owner can do anything, friends can read
       match /drinks/{drinkId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid) || isFriend(uid);
+        allow write: if isOwner(uid);
+        
+        // Reactions subcollection - friends can add/remove their own reactions
+        match /reactions/{reactionId} {
+          allow read: if isOwner(uid) || isFriend(uid);
+          allow create, update: if isFriend(uid) && request.auth.uid == reactionId;
+          allow delete: if request.auth.uid == reactionId;
+        }
+        
+        // Comments subcollection - friends can add, delete only own
+        match /comments/{commentId} {
+          allow read: if isOwner(uid) || isFriend(uid);
+          allow create: if isFriend(uid);
+          allow delete: if request.auth.uid == resource.data.uid;
+        }
       }
 
       match /notifications/{notifId} {

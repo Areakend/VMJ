@@ -87,7 +87,9 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend", 
                             : `${currentUsername}: ${message}`,
                         drinkName: drinkData.name || "Jäger",
                         timestamp: now,
-                        fromUid: userId
+                        fromUid: userId,
+                        drinkId: docRef.id,
+                        drinkOwnerId: userId
                     })
                 );
                 await Promise.all(batchPromises);
@@ -380,5 +382,106 @@ export const saveFcmToken = async (userId, token) => {
         console.error("Error saving FCM token:", e);
         return false;
     }
+};
+
+// --- Social Feed Features ---
+
+// Add a reaction to a friend's drink
+export const addReaction = async (ownerId, drinkId, reactorUid, reactorUsername, emoji) => {
+    try {
+        const reactionRef = doc(db, "users", ownerId, "drinks", drinkId, "reactions", reactorUid);
+        await setDoc(reactionRef, {
+            uid: reactorUid,
+            username: reactorUsername,
+            emoji: emoji,
+            timestamp: Date.now()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error adding reaction:", error);
+        throw error;
+    }
+};
+
+// Remove a reaction from a drink
+export const removeReaction = async (ownerId, drinkId, reactorUid) => {
+    try {
+        const reactionRef = doc(db, "users", ownerId, "drinks", drinkId, "reactions", reactorUid);
+        await deleteDoc(reactionRef);
+        return true;
+    } catch (error) {
+        console.error("Error removing reaction:", error);
+        throw error;
+    }
+};
+
+// Subscribe to reactions on a drink
+export const subscribeToReactions = (ownerId, drinkId, callback) => {
+    const q = collection(db, "users", ownerId, "drinks", drinkId, "reactions");
+    return onSnapshot(q, (snapshot) => {
+        const reactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(reactions);
+    });
+};
+
+// Add a comment to a friend's drink
+export const addComment = async (ownerId, drinkId, commenterUid, commenterUsername, text) => {
+    if (!text || text.trim().length === 0) throw new Error("Comment cannot be empty");
+    if (text.length > 200) throw new Error("Comment too long (max 200 chars)");
+
+    try {
+        await addDoc(collection(db, "users", ownerId, "drinks", drinkId, "comments"), {
+            uid: commenterUid,
+            username: commenterUsername,
+            text: text.trim(),
+            timestamp: Date.now()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error adding comment:", error);
+        throw error;
+    }
+};
+
+// Subscribe to comments on a drink
+export const subscribeToComments = (ownerId, drinkId, callback) => {
+    const q = query(
+        collection(db, "users", ownerId, "drinks", drinkId, "comments"),
+        orderBy("timestamp", "asc")
+    );
+    return onSnapshot(q, (snapshot) => {
+        const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(comments);
+    });
+};
+
+// Subscribe to drinks from all friends (merged timeline)
+export const subscribeToFriendsDrinks = (userId, friends, callback) => {
+    if (!friends || friends.length === 0) {
+        callback([]);
+        return () => { };
+    }
+
+    const unsubs = [];
+    const collections = {}; // uid -> drinks[]
+
+    friends.forEach(friend => {
+        const unsub = subscribeToDrinks(friend.uid, (userDrinks) => {
+            collections[friend.uid] = userDrinks.map(d => ({
+                ...d,
+                ownerId: friend.uid,
+                ownerUsername: friend.username
+            }));
+
+            // Combine and sort all drinks by timestamp
+            const combined = Object.values(collections)
+                .flat()
+                .sort((a, b) => b.timestamp - a.timestamp);
+            callback(combined);
+        });
+        unsubs.push(unsub);
+    });
+
+    return () => unsubs.forEach(u => u());
 };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X, User } from 'lucide-react'
+import { Beer, MapPin, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X, User, Rss } from 'lucide-react'
 import Sidebar from './components/Sidebar';
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
@@ -15,6 +15,7 @@ import EventsView from './components/EventsView'
 import EventDetails from './components/EventDetails'
 import CrewSelector from './components/CrewSelector'
 import CustomVolumeSelector from './components/CustomVolumeSelector'
+import FriendsFeed from './components/FriendsFeed'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest, subscribeToRequests } from './utils/storage'
 import { addEventDrink, subscribeToMyEvents, removeEventDrink, subscribeToPublicEvents } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
@@ -181,6 +182,8 @@ function App() {
   const [showActivityFilterModal, setShowActivityFilterModal] = useState(false);
   const [showMapFilterModal, setShowMapFilterModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [targetDrinkId, setTargetDrinkId] = useState(null);
+  const [targetDrinkOwnerId, setTargetDrinkOwnerId] = useState(null);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
@@ -314,6 +317,17 @@ function App() {
 
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
           console.log("Push Received:", notification);
+        });
+
+        // Handle notification tap - deep link to feed
+        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+          console.log("Push Tapped:", notification);
+          const data = notification.notification.data;
+          if (data?.drinkId && data?.drinkOwnerId) {
+            setTargetDrinkId(data.drinkId);
+            setTargetDrinkOwnerId(data.drinkOwnerId);
+            setView('feed');
+          }
         });
       }
     };
@@ -706,6 +720,12 @@ function App() {
           <Target size={18} /> Tracker
         </button>
         <button
+          onClick={() => { setView('feed'); setTargetDrinkId(null); }}
+          className={`nav-item ${view === 'feed' ? 'active' : ''}`}
+        >
+          <Rss size={18} /> Feed
+        </button>
+        <button
           onClick={() => setView('map')}
           className={`nav-item ${view === 'map' ? 'active' : ''}`}
         >
@@ -737,7 +757,9 @@ function App() {
         </div>
       )}
 
-      {view === 'friends' ? (
+      {view === 'feed' ? (
+        <FriendsFeed targetDrinkId={targetDrinkId} />
+      ) : view === 'friends' ? (
         <Friends />
       ) : view === 'events' ? (
         <EventsView currentUser={currentUser} userData={userData} friends={friends} onSelectEvent={(id) => { setSelectedEventId(id); setView('event-details'); }} />
