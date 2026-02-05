@@ -58,13 +58,20 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug
 
+      - name: Extract version from package.json
+        id: package_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Rename APK
         run: |
           if [ "${{ github.ref_name }}" == "main" ] || [ "${{ github.ref_name }}" == "master" ]; then
-            mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/vitemonjager-beta.apk
-            echo "APK_NAME=vitemonjager-beta.apk" >> $GITHUB_ENV
-            echo "RELEASE_TAG=v0.2.1-beta" >> $GITHUB_ENV
-            echo "RELEASE_NAME=Jäger Tracker v0.2.1-beta" >> $GITHUB_ENV
+            mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/vitemonjager-${{ env.APP_VERSION }}.apk
+            echo "APK_NAME=vitemonjager-${{ env.APP_VERSION }}.apk" >> $GITHUB_ENV
+            echo "RELEASE_TAG=v${{ env.APP_VERSION }}" >> $GITHUB_ENV
+            echo "RELEASE_NAME=Jäger Tracker v${{ env.APP_VERSION }}" >> $GITHUB_ENV
             echo "IS_LATEST=true" >> $GITHUB_ENV
           else
             mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/vitemonjager-dev.apk
