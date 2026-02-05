@@ -1,8 +1,9 @@
-import { X, LogOut, CircleHelp, Info } from 'lucide-react';
+import { X, LogOut, CircleHelp, Info, FileText } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHelp, totalDrinks }) {
     const [showAbout, setShowAbout] = useState(false);
+    const [showChangelog, setShowChangelog] = useState(false);
 
     const menuItemStyle = {
         display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
@@ -11,6 +12,11 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
         textAlign: 'left', width: '100%', borderRadius: '12px',
         marginBottom: '8px', transition: 'all 0.2s'
     };
+
+    const changelogItems = [
+        { v: '0.3.1', date: '2026-02-05', changes: ['Social Feed with Reactions & Comments', 'Notification Deep Linking', 'Keyboard visibility navigation toggle', 'UI polish & rounded buttons'] },
+        { v: '0.2.0', date: '2026-02-01', changes: ['Crew Selector filtering', 'Custom Volume Bottle UI', 'Event system live', 'Android App Links support'] }
+    ];
 
     return (
         <>
@@ -57,34 +63,50 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                 </div>
 
                 {/* Menu Items */}
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
                     <button onClick={() => { onClose(); onShowHelp(); }} style={menuItemStyle}>
                         <CircleHelp size={20} color="var(--jager-orange)" /> App Guide
                     </button>
 
-                    <button onClick={() => setShowAbout(!showAbout)} style={{ ...menuItemStyle, borderColor: showAbout ? 'var(--jager-orange)' : 'transparent' }}>
+                    <button onClick={() => { setShowAbout(!showAbout); if (!showAbout) setShowChangelog(false); }} style={{ ...menuItemStyle, borderColor: showAbout ? 'var(--jager-orange)' : 'transparent', marginBottom: showAbout ? '4px' : '8px' }}>
                         <Info size={20} color="var(--jager-orange)" /> About
                     </button>
 
-                    <div style={{
-                        overflow: 'hidden', transition: 'all 0.3s',
-                        maxHeight: showAbout ? '500px' : '0', opacity: showAbout ? 1 : 0,
-                        marginBottom: showAbout ? '10px' : '0'
-                    }}>
-                        <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', fontSize: '0.85rem', color: '#aaa', lineHeight: '1.5', border: '1px solid #333' }}>
+                    {showAbout && (
+                        <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', fontSize: '0.85rem', color: '#aaa', lineHeight: '1.5', border: '1px solid #333', marginBottom: '12px' }}>
                             <p style={{ margin: 0, marginBottom: '8px' }}><strong style={{ color: 'white' }}>Jäger Tracker</strong></p>
                             <p style={{ margin: 0 }}>This application is an independent fan project and has no affiliation with the beverage brand.</p>
                         </div>
-                    </div>
+                    )}
+
+                    <button onClick={() => { setShowChangelog(!showChangelog); if (!showChangelog) setShowAbout(false); }} style={{ ...menuItemStyle, borderColor: showChangelog ? 'var(--jager-orange)' : 'transparent', marginBottom: showChangelog ? '4px' : '8px' }}>
+                        <FileText size={20} color="var(--jager-orange)" /> Changelog
+                    </button>
+
+                    {showChangelog && (
+                        <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', fontSize: '0.8rem', color: '#aaa', lineHeight: '1.4', border: '1px solid #333', marginBottom: '12px' }}>
+                            {changelogItems.map((item, id) => (
+                                <div key={id} style={{ marginBottom: id !== changelogItems.length - 1 ? '16px' : 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                        <strong style={{ color: 'var(--jager-orange)' }}>v{item.v}</strong>
+                                        <span style={{ fontSize: '0.7rem', color: '#666' }}>{item.date}</span>
+                                    </div>
+                                    <ul style={{ paddingLeft: '16px', margin: 0 }}>
+                                        {item.changes.map((c, idx) => <li key={idx}>{c}</li>)}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
-                <div style={{ borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
+                <div style={{ borderTop: '1px solid #333', paddingTop: '1.5rem', marginTop: 'auto' }}>
                     <button onClick={onLogout} style={{ ...menuItemStyle, color: '#ff4444', justifyContent: 'center', background: 'rgba(255, 0, 0, 0.05)' }}>
                         <LogOut size={20} /> Logout
                     </button>
                     <div style={{ textAlign: 'center', marginTop: '1rem', color: '#444', fontSize: '0.7rem' }}>
-                        v0.2.1 (Stable)
+                        v0.3.1 (Social Update)
                     </div>
                 </div>
             </div>

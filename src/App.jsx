@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Beer, MapPin, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X, User, Rss } from 'lucide-react'
+import { Keyboard } from '@capacitor/keyboard'
 import Sidebar from './components/Sidebar';
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
@@ -16,8 +17,8 @@ import EventDetails from './components/EventDetails'
 import CrewSelector from './components/CrewSelector'
 import CustomVolumeSelector from './components/CustomVolumeSelector'
 import FriendsFeed from './components/FriendsFeed'
-import { subscribeToFriends, saveFcmToken, sendFriendRequest, subscribeToRequests } from './utils/storage'
-import { addEventDrink, subscribeToMyEvents, removeEventDrink, subscribeToPublicEvents } from './utils/events'
+import { subscribeToFriends, saveFcmToken, sendFriendRequest } from './utils/storage'
+import { addEventDrink, subscribeToMyEvents, subscribeToPublicEvents } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
@@ -162,7 +163,6 @@ function App() {
   const [editingDrink, setEditingDrink] = useState(null);
   const [notifPermission, setNotifPermission] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [friends, setFriends] = useState([]);
-  const [requests, setRequests] = useState([]);
   const [selectedMapFilterBuddies, setSelectedMapFilterBuddies] = useState([]); // Array of {uid, username}
   const [mapSharedOnly, setMapSharedOnly] = useState(false);
   const [mapShowEvents, setMapShowEvents] = useState(true);
@@ -183,7 +183,7 @@ function App() {
   const [showMapFilterModal, setShowMapFilterModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [targetDrinkId, setTargetDrinkId] = useState(null);
-  const [targetDrinkOwnerId, setTargetDrinkOwnerId] = useState(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
@@ -194,7 +194,6 @@ function App() {
     if (currentUser) {
       const unsubDrinks = subscribeToDrinks(currentUser.uid, setDrinks);
       const unsubFriends = subscribeToFriends(currentUser.uid, setFriends);
-      const unsubRequest = subscribeToRequests(currentUser.uid, setRequests);
       const unsubEvents = subscribeToMyEvents(currentUser.uid, (events) => {
         // Check for active event
         const active = events.filter(e => {
@@ -216,7 +215,6 @@ function App() {
       return () => {
         unsubDrinks();
         unsubFriends();
-        unsubRequest();
         unsubEvents();
         unsubPublic();
       };
@@ -323,9 +321,8 @@ function App() {
         PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
           console.log("Push Tapped:", notification);
           const data = notification.notification.data;
-          if (data?.drinkId && data?.drinkOwnerId) {
+          if (data?.drinkId) {
             setTargetDrinkId(data.drinkId);
-            setTargetDrinkOwnerId(data.drinkOwnerId);
             setView('feed');
           }
         });
@@ -410,6 +407,23 @@ function App() {
       CapApp.removeAllListeners('appUrlOpen');
     };
   }, [currentUser, userData]);
+
+  // --- Keyboard Visibility ---
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const showListener = Keyboard.addListener('keyboardWillShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideListener = Keyboard.addListener('keyboardWillHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
 
   // --- Browser URL Parameter Handling ---
   useEffect(() => {
@@ -712,38 +726,40 @@ function App() {
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="nav-bar">
-        <button
-          onClick={() => setView('tracker')}
-          className={`nav-item ${view === 'tracker' ? 'active' : ''}`}
-        >
-          <Target size={18} /> Tracker
-        </button>
-        <button
-          onClick={() => { setView('feed'); setTargetDrinkId(null); }}
-          className={`nav-item ${view === 'feed' ? 'active' : ''}`}
-        >
-          <Rss size={18} /> Feed
-        </button>
-        <button
-          onClick={() => setView('map')}
-          className={`nav-item ${view === 'map' ? 'active' : ''}`}
-        >
-          <MapIcon size={18} /> Map
-        </button>
-        <button
-          onClick={() => setView('friends')}
-          className={`nav-item ${view === 'friends' ? 'active' : ''}`}
-        >
-          <Users size={18} /> Friends
-        </button>
-        <button
-          onClick={() => setView('events')}
-          className={`nav-item ${view === 'events' ? 'active' : ''}`}
-        >
-          <Calendar size={18} /> Events
-        </button>
-      </nav>
+      {!isKeyboardVisible && (
+        <nav className="nav-bar">
+          <button
+            onClick={() => setView('tracker')}
+            className={`nav-item ${view === 'tracker' ? 'active' : ''}`}
+          >
+            <Target size={18} /> Tracker
+          </button>
+          <button
+            onClick={() => { setView('feed'); setTargetDrinkId(null); }}
+            className={`nav-item ${view === 'feed' ? 'active' : ''}`}
+          >
+            <Rss size={18} /> Feed
+          </button>
+          <button
+            onClick={() => setView('map')}
+            className={`nav-item ${view === 'map' ? 'active' : ''}`}
+          >
+            <MapIcon size={18} /> Map
+          </button>
+          <button
+            onClick={() => setView('friends')}
+            className={`nav-item ${view === 'friends' ? 'active' : ''}`}
+          >
+            <Users size={18} /> Friends
+          </button>
+          <button
+            onClick={() => setView('events')}
+            className={`nav-item ${view === 'events' ? 'active' : ''}`}
+          >
+            <Calendar size={18} /> Events
+          </button>
+        </nav>
+      )}
 
       {notifPermission === 'prompt' && Capacitor.isNativePlatform() && (
         <div style={{ background: '#fbb124', color: 'black', padding: '10px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer' }}

@@ -244,6 +244,9 @@ function DrinkCard({ drink, currentUser, userData, targetDrinkId }) {
                                 border: 'none',
                                 borderRadius: '50%',
                                 width: '40px', height: '40px',
+                                aspectRatio: '1',
+                                padding: 0,
+                                flexShrink: 0,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: newComment.trim() ? 'pointer' : 'not-allowed',
                                 color: newComment.trim() ? 'black' : '#888'
