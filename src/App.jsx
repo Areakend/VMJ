@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, MapPin, Users, Target, Map as MapIcon, Download, Upload, Droplets, Edit2, Calendar, ChevronRight, Check, CircleHelp, X, User, Rss } from 'lucide-react'
+import { MapPin, Users, Target, Map as MapIcon, Calendar, Check, User, Rss, ChevronRight, X } from 'lucide-react'
 import { Keyboard } from '@capacitor/keyboard'
 import Sidebar from './components/Sidebar';
 import { format } from 'date-fns'
@@ -10,147 +10,17 @@ import { Capacitor } from '@capacitor/core'
 import Login from './components/Login'
 import UsernameSetup from './components/UsernameSetup'
 import Friends from './components/Friends'
-import DrinkMap from './components/DrinkMap'
-import MapFilter from './components/MapFilter'
+import AppMapView from './components/AppMapView'
 import EventsView from './components/EventsView'
 import EventDetails from './components/EventDetails'
+import TrackerView from './components/TrackerView'
 import CrewSelector from './components/CrewSelector'
-import CustomVolumeSelector from './components/CustomVolumeSelector'
 import FriendsFeed from './components/FriendsFeed'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest } from './utils/storage'
 import { addEventDrink, subscribeToMyEvents, subscribeToPublicEvents } from './utils/events'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
-function EditModal({ drink, onClose, onSave }) {
-  const [volume, setVolume] = useState(drink.volume || 2);
-  const [date, setDate] = useState(format(new Date(drink.timestamp), "yyyy-MM-dd'T'HH:mm"));
-  const [comment, setComment] = useState(drink.comment || "");
-  const [address, setAddress] = useState(drink.locationName || "");
-  const [lat, setLat] = useState(drink.latitude || "");
-  const [lng, setLng] = useState(drink.longitude || "");
-  const [resolving, setResolving] = useState(false);
-
-  useEffect(() => {
-    if (!drink.locationName && drink.latitude && drink.longitude) {
-      getAddressFromCoords(drink.latitude, drink.longitude).then(addr => {
-        if (addr) setAddress(addr);
-      });
-    }
-  }, [drink]);
-
-  const handleLookup = async () => {
-    if (!address) return;
-    setResolving(true);
-    const coords = await getCoordsFromAddress(address);
-    if (coords) {
-      setLat(coords.latitude);
-      setLng(coords.longitude);
-      setAddress(coords.displayName);
-      alert("Location found!");
-    } else {
-      alert("Could not find this address.");
-    }
-    setResolving(false);
-  };
-
-  const handleSave = () => {
-    const newTimestamp = new Date(date).getTime();
-    onSave(drink.id, {
-      volume,
-      comment,
-      timestamp: newTimestamp,
-      locationName: address,
-      latitude: lat === "" ? null : parseFloat(lat),
-      longitude: lng === "" ? null : parseFloat(lng)
-    });
-  };
-
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div style={{
-        background: '#1c1c1c', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '320px',
-        border: '1px solid #333'
-      }}>
-        <h3 style={{ marginTop: 0, color: '#fbb124' }}>Edit Drink</h3>
-
-        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Time</label>
-        <input
-          type="datetime-local"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{
-            background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
-            width: '100%', marginBottom: '1.5rem', fontSize: '1rem'
-          }}
-        />
-
-        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Volume (cl)</label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '2rem' }}>
-          {[2, 4, 8, 12].map(v => (
-            <button
-              key={v}
-              onClick={() => setVolume(v)}
-              style={{
-                background: volume === v ? '#fbb124' : '#333',
-                color: volume === v ? 'black' : '#888',
-                border: 'none', padding: '10px 0', borderRadius: '8px', fontWeight: 'bold'
-              }}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-
-        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Comment</label>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="What was the occasion?"
-          style={{
-            background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
-            width: '100%', minHeight: '60px', marginBottom: '1.5rem', fontSize: '1rem', resize: 'none'
-          }}
-        />
-
-        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.8rem' }}>Location (Address)</label>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '0.5rem' }}>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Search address..."
-            style={{
-              background: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '8px',
-              flex: 1, fontSize: '0.9rem'
-            }}
-          />
-          <button
-            onClick={handleLookup}
-            disabled={resolving}
-            style={{
-              background: '#444', color: '#fbb124', border: 'none', padding: '0 12px', borderRadius: '8px',
-              fontSize: '0.8rem', fontWeight: 'bold'
-            }}
-          >
-            {resolving ? '...' : 'Find'}
-          </button>
-        </div>
-        <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '1.5rem', paddingLeft: '5px' }}>
-          {lat ? `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}` : 'No coordinates set'}
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid #444', color: '#888', borderRadius: '8px' }}>Cancel</button>
-          <button onClick={handleSave} style={{ flex: 1, padding: '12px', background: '#fbb124', border: 'none', color: 'black', borderRadius: '8px', fontWeight: 'bold' }}>Save</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function App() {
   const { currentUser, userData, loading: authLoading, logout } = useAuth();
@@ -186,7 +56,7 @@ function App() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
-    getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.log("Silent loc fail", e));
+    getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.warn("Silent loc fail", e));
   }, []);
 
   // --- Subscriptions ---
@@ -280,14 +150,28 @@ function App() {
                   title: "New Jäger! 🦌",
                   body: notif.message,
                   id: Math.floor(Math.random() * 10000),
-                  schedule: { at: new Date(Date.now() + 100) }
+                  schedule: { at: new Date(Date.now() + 100) },
+                  extra: { drinkId: notif.drinkId }
                 }
               ]
             });
           } else {
-            console.log("Social Notification:", notif.message);
+            // Web notification (optional, maybe toast?)
           }
         });
+
+        // Handle Local Notification Click
+        if (Capacitor.isNativePlatform()) {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+            const drinkId = notification.notification.extra?.drinkId;
+            if (drinkId) {
+              setTargetDrinkId(drinkId);
+              setView('feed');
+            }
+          });
+        }
+
         return unsub;
       }
     };
@@ -305,7 +189,6 @@ function App() {
         PushNotifications.register();
 
         PushNotifications.addListener('registration', (token) => {
-          console.log("Push Registration Success:", token.value);
           saveFcmToken(currentUser.uid, token.value);
         });
 
@@ -314,12 +197,10 @@ function App() {
         });
 
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          console.log("Push Received:", notification);
         });
 
         // Handle notification tap - deep link to feed
         PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-          console.log("Push Tapped:", notification);
           const data = notification.notification.data;
           if (data?.drinkId) {
             setTargetDrinkId(data.drinkId);
@@ -782,499 +663,122 @@ function App() {
       ) : view === 'event-details' && selectedEventId ? (
         <EventDetails eventId={selectedEventId} currentUser={currentUser} userData={userData} friends={friends} onBack={() => { setSelectedEventId(null); setView('events'); }} />
       ) : view === 'map' ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {/* Map Filters Header */}
-          <div className="filter-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold' }}>MAP FILTERS</span>
-              {sharedStats && (
-                <div className="shared-stats-badge">
-                  <Target size={12} /> {sharedStats.shots} shots together
-                </div>
-              )}
-            </div>
+        <AppMapView
+          mapShowEvents={mapShowEvents}
+          setMapShowEvents={setMapShowEvents}
+          selectedMapFilterBuddies={selectedMapFilterBuddies}
+          setSelectedMapFilterBuddies={setSelectedMapFilterBuddies}
+          setShowMapFilterModal={setShowMapFilterModal}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          sharedStats={sharedStats}
+          mapDrinks={mapDrinks}
+          locationState={locationState}
+          publicEvents={publicEvents}
+          onSelectEvent={(id) => { setSelectedEventId(id); setView('events'); }}
+          mapSharedOnly={mapSharedOnly}
+          currentUser={currentUser}
+        />
+      ) : (
+        <TrackerView
+          drinks={drinks}
+          handleDrink={handleDrink}
+          loading={loading}
+          error={error}
+          volume={volume}
+          setVolume={setVolume}
+          drinkComment={drinkComment}
+          setDrinkComment={setDrinkComment}
+          selectedBuddies={selectedBuddies}
+          setSelectedBuddies={setSelectedBuddies}
+          handleExport={handleExport}
+          handleImport={handleImport}
+          handleUpdateDrink={handleUpdateDrink}
+          handleDeleteDrink={handleDeleteDrink}
+          currentUser={currentUser}
+          userData={userData}
+          friends={friends}
+          editingDrink={editingDrink}
+          setEditingDrink={setEditingDrink}
+          showCrewModal={showCrewModal}
+          setShowCrewModal={setShowCrewModal}
+          showVolumeModal={showVolumeModal}
+          setShowVolumeModal={setShowVolumeModal}
+          showActivityFilterModal={showActivityFilterModal}
+          setShowActivityFilterModal={setShowActivityFilterModal}
+          selectedFilterBuddies={selectedFilterBuddies}
+          setSelectedFilterBuddies={setSelectedFilterBuddies}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          sharedStats={sharedStats}
+          filteredDrinks={filteredDrinks}
+          totalDrinks={totalDrinks}
+          totalVolumeCl={totalVolumeCl}
+          lastNightVolume={lastNightVolume}
+          setShowMainHelp={setShowMainHelp}
+        />
+      )}
 
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'rgba(251, 177, 36, 0.05)', borderRadius: '12px', border: mapShowEvents ? '1px solid var(--jager-orange)' : '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
-                <div style={{ position: 'relative', width: '20px', height: '20px' }}>
-                  <input
-                    type="checkbox"
-                    checked={mapShowEvents}
-                    onChange={e => setMapShowEvents(e.target.checked)}
-                    style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
-                  />
-                  <div style={{
-                    width: '20px', height: '20px', borderRadius: '6px',
-                    border: '2px solid ' + (mapShowEvents ? '#fbb124' : '#666'),
-                    background: mapShowEvents ? '#fbb124' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}>
-                    {mapShowEvents && <Check size={14} color="black" strokeWidth={3} />}
-                  </div>
-                </div>
-                <span style={{ fontSize: '0.9rem', color: mapShowEvents ? '#fbb124' : '#888', fontWeight: 'bold' }}>Show Public Events 🌟</span>
-              </label>
-            </div>
 
-            <div style={{ marginTop: '12px', marginBottom: '12px' }}>
+
+      {
+        showMapFilterModal && (
+          <CrewSelector
+            friends={friends}
+            selectedBuddies={selectedMapFilterBuddies}
+            onToggle={setSelectedMapFilterBuddies}
+            onClose={() => setShowMapFilterModal(false)}
+            title="Filter Map Activity"
+            includeMe={true}
+            currentUserId={currentUser.uid}
+            currentUsername={userData.username}
+            showSharedToggle={true}
+            sharedOnly={mapSharedOnly}
+            onToggleShared={setMapSharedOnly}
+          />
+        )
+      }
+
+      {
+        showMainHelp && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+            padding: '1.5rem', backdropFilter: 'blur(5px)'
+          }}>
+            <div style={{
+              background: '#1c1c1c', width: '100%', maxWidth: '340px', borderRadius: '24px',
+              padding: '1.5rem', border: '1px solid #333', boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--jager-orange)' }}>App Guide</h3>
+                <button onClick={() => setShowMainHelp(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}><X size={24} /></button>
+              </div>
+              <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                <p><strong>🍻 Quick Shot:</strong> Hit the big button to log a drink! It saves to your history and any <strong>open event</strong> you're in.</p>
+                <p><strong>👥 Crew:</strong> Tag friends before drinking! This logs a shot for <strong>YOU</strong> and <strong>THEM</strong>. (Great for buying rounds!).</p>
+                <p><strong>🔍 Filters:</strong> Use the "Filter History" button (or Map Filters) to see stats for specific crew members or dates.</p>
+                <p><strong>📍 Events:</strong> Join a public event or create your own to see a live leaderboard and map of everyone's shots!</p>
+              </div>
               <button
-                onClick={() => setShowMapFilterModal(true)}
+                onClick={() => setShowMainHelp(false)}
                 style={{
-                  width: '100%',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: '10px 16px',
-                  borderRadius: '12px',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer'
+                  width: '100%', marginTop: '1rem', padding: '12px', background: '#333', color: 'white',
+                  border: 'none', borderRadius: '12px', fontWeight: 'bold'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users size={16} color={selectedMapFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
-                    {selectedMapFilterBuddies.length > 0
-                      ? `${selectedMapFilterBuddies.length} Crew Selected`
-                      : 'Select Crew'}
-                  </span>
-                </div>
-                <ChevronRight size={16} color="#444" />
+                Cheers! 🦌
               </button>
-              {selectedMapFilterBuddies.length > 0 && (
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
-                  {selectedMapFilterBuddies.map(b => (
-                    <span
-                      key={b.uid}
-                      onClick={() => setSelectedMapFilterBuddies(selectedMapFilterBuddies.filter(fb => fb.uid !== b.uid))}
-                      style={{
-                        fontSize: '0.7rem', background: 'rgba(251, 177, 36, 0.08)',
-                        color: '#fbb124', padding: '3px 8px', borderRadius: '10px',
-                        border: '1px solid rgba(251, 177, 36, 0.2)', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '4px'
-                      }}
-                    >
-                      {b.username} &times;
-                    </span>
-                  ))}
-                  <button
-                    onClick={() => setSelectedMapFilterBuddies([])}
-                    style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.7rem', padding: '3px 8px' }}
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
             </div>
-
-            <div className="date-filter-row">
-              <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
-              <span style={{ color: '#444' }}>→</span>
-              <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
-              {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: 'transparent', border: 'none', color: '#fbb124', fontSize: '1.2rem' }}>&times;</button>}
-            </div>
-
-
           </div>
-
-          <div className="map-view-container" style={{ position: 'relative' }}>
-            <DrinkMap
-              key={view + selectedMapFilterBuddies.length + startDate + endDate}
-              drinks={mapDrinks.filter(d => {
-                const date = new Date(d.timestamp);
-                const afterStart = !startDate || date >= new Date(startDate);
-                const beforeEnd = !endDate || date <= new Date(endDate);
-                if (!afterStart || !beforeEnd) return false;
-
-                if (mapSharedOnly) {
-                  // If it's my drink, it must have a buddy that is in selectedMapFilterBuddies
-                  if (d.userId === currentUser.uid) {
-                    return d.buddies && d.buddies.some(buddy => selectedMapFilterBuddies.some(sb => sb.uid === buddy.uid));
-                  } else {
-                    // If it's a buddy's drink, I must be in their buddies list
-                    // (and they must be in my selected list, which is already true by mapDrinks content)
-                    return d.buddies && d.buddies.some(b => b.uid === currentUser.uid);
-                  }
-                }
-                return true;
-              })}
-              userLocation={locationState}
-              publicEvents={publicEvents}
-              showEvents={mapShowEvents}
-              onSelectEvent={(id) => { setSelectedEventId(id); setView('events'); }}
-            />
-          </div>
-        </div>
-      ) : view === 'events' ? (
-        selectedEventId ? (
-          <EventDetails eventId={selectedEventId} currentUser={currentUser} userData={userData} friends={friends} onBack={() => setSelectedEventId(null)} />
-        ) : (
-          <EventsView currentUser={currentUser} userData={userData} friends={friends} onSelectEvent={setSelectedEventId} />
         )
-      ) : (
-        <>
-          {/* Stats Header */}
-          <div className="stats" style={{ marginBottom: '3.5rem' }}>
-            <div className="stat-item" style={{ borderTop: '2px solid rgba(255,255,255,0.05)' }}>
-              <strong>{totalDrinks}</strong>
-              <span>Total Shots</span>
-            </div>
-            <div className="stat-item" style={{ borderTop: '2px solid var(--jager-orange)', background: 'rgba(251, 177, 36, 0.08)', transform: 'scale(1.05)' }}>
-              <strong>{lastNightVolume}cl</strong>
-              <span>Last Night</span>
-            </div>
-            <div className="stat-item" style={{ borderTop: '2px solid #555' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <strong style={{ fontSize: '1.2rem' }}>{(totalVolumeCl / 70).toFixed(1)}</strong>
-                <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'lowercase' }}>bottles</span>
-              </div>
-            </div>
-          </div>
+      }
 
-          {/* Action Button */}
-          <div className="main-action-area" style={{ marginBottom: '4rem' }}>
-            <button
-              className="drink-button"
-              onClick={handleDrink}
-              disabled={loading}
-              style={{ width: '210px', height: '210px', boxShadow: '0 0 40px rgba(251, 177, 36, 0.1)' }}
-            >
-              <Beer size={48} />
-              <span className="label" style={{ fontSize: '1.6rem' }}>{loading ? '...' : 'Cheers!'}</span>
-            </button>
-            {error && <div style={{ color: '#ef4444', marginTop: '15px', fontSize: '0.9rem' }}>{error}</div>}
-          </div>
 
-          {/* Volume Selection */}
-          <div className="volume-container" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-            {[2, 4, 8, 12].map(v => (
-              <button
-                key={v}
-                onClick={() => setVolume(v)}
-                className={`volume-btn ${volume === v ? 'active' : ''}`}
-              >
-                <span>{v}cl</span>
-                <small style={{ fontSize: '0.6rem' }}>{v === 2 ? 'Shot' : v === 4 ? 'Double' : v === 8 ? 'Huge' : 'Dead'}</small>
-              </button>
-            ))}
-            <button
-              onClick={() => setShowVolumeModal(true)}
-              className={`volume-btn ${![2, 4, 8, 12].includes(volume) ? 'active' : ''}`}
-              style={{ borderStyle: 'dashed' }}
-            >
-              <span>{![2, 4, 8, 12].includes(volume) ? `${volume}cl` : '+'}</span>
-              <small style={{ fontSize: '0.6rem' }}>Custom</small>
-            </button>
-          </div>
-
-          {/* Comment */}
-          <div style={{ padding: '0 15px', marginBottom: '3rem' }}>
-            <input
-              type="text"
-              value={drinkComment}
-              onChange={(e) => setDrinkComment(e.target.value)}
-              placeholder="A toast for..."
-              style={{
-                width: '100%',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                padding: '16px',
-                borderRadius: '16px',
-                color: 'white',
-                fontSize: '0.95rem',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-              }}
-            />
-          </div>
-
-          {/* Buddy Selection Overhaul */}
-          <div style={{ padding: '0 15px', marginBottom: '2.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '10px', color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>Drinking with:</label>
-            <button
-              onClick={() => setShowCrewModal(true)}
-              style={{
-                width: '100%',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '16px',
-                borderRadius: '16px',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Users size={20} color={selectedBuddies.length > 0 ? '#fbb124' : '#666'} />
-                <span style={{ fontSize: '1rem', fontWeight: '600' }}>
-                  {selectedBuddies.length > 0
-                    ? `${selectedBuddies.length} Crew members tagged`
-                    : 'Select Crew members'}
-                </span>
-              </div>
-              {ChevronRight && <ChevronRight size={18} color="#444" />}
-            </button>
-            {selectedBuddies.length > 0 && (
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
-                {selectedBuddies.map(b => (
-                  <span
-                    key={b.uid}
-                    onClick={() => setSelectedBuddies(selectedBuddies.filter(buddy => buddy.uid !== b.uid))}
-                    style={{
-                      fontSize: '0.75rem', background: 'rgba(251, 177, 36, 0.1)',
-                      color: '#fbb124', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(251, 177, 36, 0.2)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {b.username} &times;
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="history-container">
-            <div className="filter-section">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'bold' }}>FILTER MY HISTORY:</span>
-                {sharedStats && (
-                  <div className="shared-stats-badge">
-                    <Users size={12} /> {sharedStats.shots} shots together
-                  </div>
-                )}
-              </div>
-
-              <div className="date-filter-row">
-                <input type="date" className="date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                <span style={{ color: '#444' }}>→</span>
-                <input type="date" className="date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
-              </div>
-
-              <div style={{ marginTop: '12px' }}>
-                <button
-                  onClick={() => setShowActivityFilterModal(true)}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    padding: '10px 16px',
-                    borderRadius: '12px',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Users size={16} color={selectedFilterBuddies.length > 0 ? '#fbb124' : '#666'} />
-                    <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
-                      {selectedFilterBuddies.length > 0
-                        ? `Filtering by ${selectedFilterBuddies.length} members`
-                        : 'Filter by Crew members'}
-                    </span>
-                  </div>
-                  <ChevronRight size={16} color="#444" />
-                </button>
-                {selectedFilterBuddies.length > 0 && (
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
-                    {selectedFilterBuddies.map(b => (
-                      <span
-                        key={b.uid}
-                        onClick={() => setSelectedFilterBuddies(selectedFilterBuddies.filter(fb => fb.uid !== b.uid))}
-                        style={{
-                          fontSize: '0.7rem', background: 'rgba(251, 177, 36, 0.08)',
-                          color: '#fbb124', padding: '3px 8px', borderRadius: '10px',
-                          border: '1px solid rgba(251, 177, 36, 0.2)', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '4px'
-                        }}
-                      >
-                        {b.username} &times;
-                      </span>
-                    ))}
-                    <button
-                      onClick={() => setSelectedFilterBuddies([])}
-                      style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.7rem', padding: '3px 8px' }}
-                    >
-                      Clear
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="history-header">Recent Activity</div>
-
-            {drinks.length === 0 && (
-              <p style={{ color: '#666', textAlign: 'center', margin: '2rem 0', fontStyle: 'italic' }}>
-                No drinks tracked yet.<br />Time to fix that?
-              </p>
-            )}
-
-            {filteredDrinks.slice(0, 10).map(drink => (
-              <div key={drink.id} className="history-item">
-                <div style={{ flex: 1 }}>
-                  <div className="history-time">
-                    {format(new Date(drink.timestamp), 'HH:mm')}
-                    <span className="history-date"> {format(new Date(drink.timestamp), 'dd MMM')}</span>
-                  </div>
-                  <div className="history-meta">
-                    <span className="tag">
-                      <Droplets size={10} style={{ verticalAlign: -1, marginRight: 2 }} />
-                      {drink.volume || 2}cl
-                    </span>
-                    {drink.locationName ? (
-                      <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <MapPin size={10} style={{ marginRight: 2, flexShrink: 0 }} /> {drink.locationName}
-                      </span>
-                    ) : drink.latitude && (
-                      <span style={{ fontSize: '0.75rem', color: '#666', display: 'flex', alignItems: 'center' }}>
-                        <MapPin size={10} style={{ marginRight: 2 }} /> Map
-                      </span>
-                    )}
-                  </div>
-                  {drink.buddies && drink.buddies.length > 0 && (
-                    <div style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Users size={10} />
-                      <span>with {drink.buddies.map(b => b.username).join(', ')}</span>
-                    </div>
-                  )}
-                  {drink.creatorId !== currentUser.uid && (
-                    <div style={{ fontSize: '0.65rem', color: '#888', fontStyle: 'italic' }}>Tagged by {drink.creatorName || 'a buddy'}</div>
-                  )}
-                  {drink.comment && (
-                    <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
-                      "{drink.comment}"
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setEditingDrink(drink)}
-                    className="delete-btn"
-                    style={{ color: '#888' }}
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteDrink(drink)}
-                    className="delete-btn"
-                  >
-                    &times;
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Import / Export */}
-          <div className="utility-bar">
-            <button onClick={handleExport} className="utility-btn">
-              <Download size={14} /> Export
-            </button>
-            <button onClick={() => fileInputRef.current.click()} className="utility-btn">
-              <Upload size={14} /> Import
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImport}
-              style={{ display: 'none' }}
-              accept=".json"
-            />
-          </div>
-        </>
-      )}
-
-      {editingDrink && (
-        <EditModal
-          drink={editingDrink}
-          onClose={() => setEditingDrink(null)}
-          onSave={handleUpdateDrink}
-        />
-      )}
-
-      {showCrewModal && (
-        <CrewSelector
-          friends={friends}
-          selectedBuddies={selectedBuddies}
-          onToggle={setSelectedBuddies}
-          onClose={() => setShowCrewModal(false)}
-          title="Drinking with..."
-        />
-      )}
-
-      {showActivityFilterModal && (
-        <CrewSelector
-          friends={friends}
-          selectedBuddies={selectedFilterBuddies}
-          onToggle={setSelectedFilterBuddies}
-          onClose={() => setShowActivityFilterModal(false)}
-          title="Filter Activity"
-          includeMe={true}
-          currentUserId={currentUser.uid}
-          currentUsername={userData.username}
-        />
-      )}
-
-      {showMapFilterModal && (
-        <CrewSelector
-          friends={friends}
-          selectedBuddies={selectedMapFilterBuddies}
-          onToggle={setSelectedMapFilterBuddies}
-          onClose={() => setShowMapFilterModal(false)}
-          title="Filter Map Activity"
-          includeMe={true}
-          currentUserId={currentUser.uid}
-          currentUsername={userData.username}
-          showSharedToggle={true}
-          sharedOnly={mapSharedOnly}
-          onToggleShared={setMapSharedOnly}
-        />
-      )}
-
-      {showMainHelp && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem', backdropFilter: 'blur(5px)'
-        }}>
-          <div style={{
-            background: '#1c1c1c', width: '100%', maxWidth: '340px', borderRadius: '24px',
-            padding: '1.5rem', border: '1px solid #333', boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, color: 'var(--jager-orange)' }}>App Guide</h3>
-              <button onClick={() => setShowMainHelp(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}><X size={24} /></button>
-            </div>
-            <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.5' }}>
-              <p><strong>🍻 Quick Shot:</strong> Hit the big button to log a drink! It saves to your history and any <strong>open event</strong> you're in.</p>
-              <p><strong>👥 Crew:</strong> Tag friends before drinking! This logs a shot for <strong>YOU</strong> and <strong>THEM</strong>. (Great for buying rounds!).</p>
-              <p><strong>🔍 Filters:</strong> Use the "Filter History" button (or Map Filters) to see stats for specific crew members or dates.</p>
-              <p><strong>📍 Events:</strong> Join a public event or create your own to see a live leaderboard and map of everyone's shots!</p>
-            </div>
-            <button
-              onClick={() => setShowMainHelp(false)}
-              style={{
-                width: '100%', marginTop: '1rem', padding: '12px', background: '#333', color: 'white',
-                border: 'none', borderRadius: '12px', fontWeight: 'bold'
-              }}
-            >
-              Cheers! 🦌
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showVolumeModal && (
-        <CustomVolumeSelector
-          volume={volume}
-          onSelect={setVolume}
-          onClose={() => setShowVolumeModal(false)}
-        />
-      )}
 
       <Sidebar
         isOpen={showSidebar}

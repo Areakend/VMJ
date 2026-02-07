@@ -29,7 +29,6 @@ export function AuthProvider({ children }) {
     // Login function
     async function login(options = {}) {
         const { forcePopup = false } = options;
-        console.log("[AUTH] Login attempt. Platform:", Capacitor.getPlatform(), "ForcePopup:", forcePopup);
 
         if (Capacitor.isNativePlatform()) {
             try {
@@ -42,22 +41,18 @@ export function AuthProvider({ children }) {
                 throw err;
             }
         } else {
-            console.log("[AUTH] Web platform detected.");
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
             try {
                 if (forcePopup) {
-                    console.log("[AUTH] Forcing Popup flow...");
                     return await signInWithPopup(auth, googleProvider);
                 }
 
                 if (isMobile) {
-                    console.log("[AUTH] Mobile detected, using redirect...");
                     setSyncStatus("Redirecting to Google...");
                     return await signInWithRedirect(auth, googleProvider);
                 } else {
                     // Desktop: Use Popup (most reliable across domains/incognito)
-                    console.log("[AUTH] Desktop detected, using popup...");
                     try {
                         return await signInWithPopup(auth, googleProvider);
                     } catch (pErr) {
@@ -67,7 +62,6 @@ export function AuthProvider({ children }) {
                             alert("Popups are blocked. Please allow popups for this site or try again.");
                         } else if (pErr.code === 'auth/popup-closed-by-user') {
                             // User intentionally closed it, don't force redirect
-                            console.log("[AUTH] Popup closed by user.");
                         } else {
                             // For other errors, we might alert or throw
                             alert("Login failed: " + pErr.message);
@@ -94,7 +88,6 @@ export function AuthProvider({ children }) {
     }
 
     useEffect(() => {
-        console.log("[AUTH] useEffect started");
         // Multi-phase sync status
         setSyncStatus("Checking session...");
 
@@ -112,23 +105,25 @@ export function AuthProvider({ children }) {
             window.location.hash.includes('access_token') ||
             window.location.search.includes('state=');
 
-        console.log("[AUTH] Has redirect params:", hasRedirectParams);
-        console.log("[AUTH] Current URL:", window.location.href);
 
         if (hasRedirectParams) {
             setSyncStatus("Syncing account...");
         }
 
         // Handle redirect results 
-        console.log("[AUTH] Calling getRedirectResult...");
         getRedirectResult(auth)
             .then((result) => {
-                console.log("[AUTH] getRedirectResult resolved:", result ? result.user.email : "null");
                 if (result) {
-                    console.log("[AUTH] Redirect sign-in success for:", result.user.email);
                     setSyncStatus("Loading profile...");
+                    // User is signed in, onAuthStateChanged will handle the rest
                 } else {
-                    console.log("[AUTH] getRedirectResult returned null");
+                    // No redirect result found. 
+                    // If we THOUGHT there was a redirect (hasRedirectParams), but firebase says no,
+                    // we must stop loading so the user isn't stuck.
+                    if (hasRedirectParams) {
+                        console.warn("[AUTH] Redirect params present but no result. Clearing load state.");
+                        setLoading(false);
+                    }
                 }
             })
             .catch((error) => {
@@ -142,24 +137,19 @@ export function AuthProvider({ children }) {
                 setLoading(false);
             });
 
-        console.log("[AUTH] Setting up onAuthStateChanged listener...");
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            console.log("[AUTH] onAuthStateChanged fired. User:", user ? user.email : "null");
             setCurrentUser(user);
 
             if (user) {
                 setSyncStatus("Fetching profile...");
-                console.log("[AUTH] Fetching Firestore profile for:", user.uid);
                 const userDocRef = doc(db, "users", user.uid);
                 const unsubDoc = onSnapshot(userDocRef, (docSnap) => {
-                    console.log("[AUTH] Firestore snapshot received. Exists:", docSnap.exists());
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
                         console.warn("[AUTH] User exists in Auth but not in Firestore");
                         setUserData(null);
                     }
-                    console.log("[AUTH] Setting loading to false (user authenticated)");
                     setLoading(false);
                     clearTimeout(safetyTimeout);
                 }, (error) => {
@@ -170,17 +160,16 @@ export function AuthProvider({ children }) {
 
                 return () => unsubDoc();
             } else {
-                console.log("[AUTH] No user authenticated");
                 setUserData(null);
-                // Always stop loading if no user, regardless of redirect params
-                console.log("[AUTH] Setting loading to false (no user)");
-                setLoading(false);
+                // Only stop loading if we are NOT waiting for a redirect check
+                if (!hasRedirectParams) {
+                    setLoading(false);
+                }
                 clearTimeout(safetyTimeout);
             }
         });
 
         return () => {
-            console.log("[AUTH] Cleaning up useEffect");
             unsubscribe();
             clearTimeout(safetyTimeout);
         };

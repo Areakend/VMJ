@@ -231,7 +231,6 @@ export default function Friends() {
                                     throw new Error('Web Share not supported');
                                 }
                             } catch (e) {
-                                console.log('Share failed or dismissed, trying clipboard', e);
                                 try {
                                     await navigator.clipboard.writeText(`${text} ${link}`);
                                     alert("Profile link copied to clipboard! 🦌");

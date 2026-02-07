@@ -11,8 +11,14 @@ import {
     getDoc,
     setDoc,
     getDocs,
-    where
+    where,
+    increment,
+    deleteField
 } from "firebase/firestore";
+
+// ... (lines 16-439 omitted for brevity in replacement, but I must match exact target content for the tool)
+// Actually, I can't easily jump lines in one replacement if they are far apart.
+// I'll do two replacements. One for import, one for function.
 
 // --- Validation Helpers ---
 export const validateUsername = (username) => {
@@ -396,6 +402,13 @@ export const addReaction = async (ownerId, drinkId, reactorUid, reactorUsername,
             emoji: emoji,
             timestamp: Date.now()
         });
+
+        // Sync to parent for preview
+        const drinkRef = doc(db, "users", ownerId, "drinks", drinkId);
+        await setDoc(drinkRef, {
+            [`reactions.${reactorUid}`]: emoji
+        }, { merge: true });
+
         return true;
     } catch (error) {
         console.error("Error adding reaction:", error);
@@ -408,6 +421,15 @@ export const removeReaction = async (ownerId, drinkId, reactorUid) => {
     try {
         const reactionRef = doc(db, "users", ownerId, "drinks", drinkId, "reactions", reactorUid);
         await deleteDoc(reactionRef);
+
+        // Sync removal from parent
+        const drinkRef = doc(db, "users", ownerId, "drinks", drinkId);
+        // Ensure we remove that specific key using FieldValue.delete() logic or similar
+        // Firestore update with dot notation works for map fields
+        await setDoc(drinkRef, {
+            [`reactions.${reactorUid}`]: deleteField()
+        }, { merge: true });
+
         return true;
     } catch (error) {
         console.error("Error removing reaction:", error);
@@ -425,6 +447,7 @@ export const subscribeToReactions = (ownerId, drinkId, callback) => {
 };
 
 // Add a comment to a friend's drink
+// Add a comment to a friend's drink
 export const addComment = async (ownerId, drinkId, commenterUid, commenterUsername, text) => {
     if (!text || text.trim().length === 0) throw new Error("Comment cannot be empty");
     if (text.length > 200) throw new Error("Comment too long (max 200 chars)");
@@ -436,6 +459,30 @@ export const addComment = async (ownerId, drinkId, commenterUid, commenterUserna
             text: text.trim(),
             timestamp: Date.now()
         });
+
+        // Update parent drink with comment stats
+        const drinkRef = doc(db, "users", ownerId, "drinks", drinkId);
+        await setDoc(drinkRef, {
+            commentCount: increment(1),
+            lastCommenterId: commenterUid,
+            lastCommentTimestamp: Date.now()
+        }, { merge: true });
+
+        // Notify the owner if it's not their own comment
+        if (ownerId !== commenterUid) {
+            try {
+                await addDoc(collection(db, "users", ownerId, "notifications"), {
+                    message: `${commenterUsername} commented: "${text.trim()}"`,
+                    type: 'comment',
+                    drinkId: drinkId,
+                    fromUid: commenterUid,
+                    timestamp: Date.now()
+                });
+            } catch (err) {
+                console.warn("Failed to send comment notification:", err);
+            }
+        }
+
         return true;
     } catch (error) {
         console.error("Error adding comment:", error);

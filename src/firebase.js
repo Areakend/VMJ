@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 import {
     getFirestore,
     initializeFirestore,
@@ -22,6 +22,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+// Explicitly set persistence ensures mobile web works correctly
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error("Auth Persistence Error:", error);
+});
+
 export const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firestore with modern persistence settings

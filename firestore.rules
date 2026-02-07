@@ -24,7 +24,10 @@ service cloud.firestore {
       // Drinks - owner can do anything, friends can read
       match /drinks/{drinkId} {
         allow read: if isOwner(uid) || isFriend(uid);
-        allow write: if isOwner(uid);
+        // Allow create if Owner OR if Friend AND the creatorId matches the authenticated user (Tagging)
+        allow create: if isOwner(uid) || (isFriend(uid) && request.resource.data.creatorId == request.auth.uid);
+        // Allow update/delete if Owner OR if the creatorId matches the authenticated user (Tagging)
+        allow update, delete: if isOwner(uid) || (isFriend(uid) && resource.data.creatorId == request.auth.uid);
         
         // Reactions subcollection - friends can add/remove their own reactions
         match /reactions/{reactionId} {
@@ -36,7 +39,8 @@ service cloud.firestore {
         // Comments subcollection - friends can add, delete only own
         match /comments/{commentId} {
           allow read: if isOwner(uid) || isFriend(uid);
-          allow create: if isFriend(uid);
+          // Enforce that the comment's uid matches the authenticated user
+          allow create: if isFriend(uid) && request.resource.data.uid == request.auth.uid;
           allow delete: if request.auth.uid == resource.data.uid;
         }
       }
@@ -54,8 +58,14 @@ service cloud.firestore {
 
       match /friends/{friendId} {
         allow read: if isOwner(uid);
-        // Acceptance writes to both sides
-        allow write: if isOwner(uid) || (isSignedIn() && request.auth.uid == friendId);
+        // Acceptance writes to both sides.
+        // 1. Owner can write anything to their list.
+        // 2. Friend (friendId) can write THEMSELVES to owner's list ONLY IF owner sent them a request.
+        allow write: if isOwner(uid) || (
+          isSignedIn() && 
+          request.auth.uid == friendId && 
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)/friendRequests/$(uid))
+        );
       }
     }
 
