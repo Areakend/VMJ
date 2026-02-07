@@ -290,14 +290,22 @@ export default function TrackerView({
                                 {drink.creatorId !== currentUser.uid && (
                                     <div style={{ fontSize: '0.65rem', color: '#888', fontStyle: 'italic' }}>Tagged by {drink.creatorName || 'a buddy'}</div>
                                 )}
-                                {/* Comment preview (if not expanded) could go here, but omitted for now to keep it clean */}
+                                {drink.comment && (
+                                    <div style={{ fontSize: '0.8rem', color: '#fbb124', marginTop: '4px', fontStyle: 'italic' }}>
+                                        "{drink.comment}"
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                 <button
                                     onClick={() => toggleComments(drink.id)}
                                     className="delete-btn"
-                                    style={{ color: expandedCommentDrinkId === drink.id ? '#fbb124' : '#666' }}
+                                    style={{
+                                        color: expandedCommentDrinkId === drink.id
+                                            ? '#fbb124'
+                                            : (drink.commentCount > 0 && drink.lastCommenterId !== currentUser.uid ? '#fbb124' : '#666')
+                                    }}
                                 >
                                     <Users size={16} />
                                 </button>

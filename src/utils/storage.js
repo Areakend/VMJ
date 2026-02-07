@@ -11,8 +11,13 @@ import {
     getDoc,
     setDoc,
     getDocs,
-    where
+    where,
+    increment
 } from "firebase/firestore";
+
+// ... (lines 16-439 omitted for brevity in replacement, but I must match exact target content for the tool)
+// Actually, I can't easily jump lines in one replacement if they are far apart.
+// I'll do two replacements. One for import, one for function.
 
 // --- Validation Helpers ---
 export const validateUsername = (username) => {
@@ -437,6 +442,14 @@ export const addComment = async (ownerId, drinkId, commenterUid, commenterUserna
             text: text.trim(),
             timestamp: Date.now()
         });
+
+        // Update parent drink with comment stats
+        const drinkRef = doc(db, "users", ownerId, "drinks", drinkId);
+        await setDoc(drinkRef, {
+            commentCount: increment(1),
+            lastCommenterId: commenterUid,
+            lastCommentTimestamp: Date.now()
+        }, { merge: true });
 
         // Notify the owner if it's not their own comment
         if (ownerId !== commenterUid) {

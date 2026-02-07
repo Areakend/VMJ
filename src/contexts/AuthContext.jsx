@@ -115,7 +115,15 @@ export function AuthProvider({ children }) {
             .then((result) => {
                 if (result) {
                     setSyncStatus("Loading profile...");
+                    // User is signed in, onAuthStateChanged will handle the rest
                 } else {
+                    // No redirect result found. 
+                    // If we THOUGHT there was a redirect (hasRedirectParams), but firebase says no,
+                    // we must stop loading so the user isn't stuck.
+                    if (hasRedirectParams) {
+                        console.warn("[AUTH] Redirect params present but no result. Clearing load state.");
+                        setLoading(false);
+                    }
                 }
             })
             .catch((error) => {
@@ -153,8 +161,10 @@ export function AuthProvider({ children }) {
                 return () => unsubDoc();
             } else {
                 setUserData(null);
-                // Always stop loading if no user, regardless of redirect params
-                setLoading(false);
+                // Only stop loading if we are NOT waiting for a redirect check
+                if (!hasRedirectParams) {
+                    setLoading(false);
+                }
                 clearTimeout(safetyTimeout);
             }
         });
