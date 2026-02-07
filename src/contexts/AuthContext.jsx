@@ -48,10 +48,10 @@ export function AuthProvider({ children }) {
                     return await signInWithPopup(auth, googleProvider);
                 }
 
-                if (isMobile) {
-                    setSyncStatus("Redirecting to Google...");
-                    sessionStorage.setItem('auth_redirect', 'true'); // Flag to track redirect
-                    return await signInWithRedirect(auth, googleProvider);
+                if (isMobile && !forcePopup) {
+                    // Try popup first even on mobile, as redirects are flaky
+                    // If popup fails, we can fallback or alert
+                    return await signInWithPopup(auth, googleProvider);
                 } else {
                     // Desktop: Use Popup (most reliable across domains/incognito)
                     try {
