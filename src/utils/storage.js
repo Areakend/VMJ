@@ -425,6 +425,7 @@ export const subscribeToReactions = (ownerId, drinkId, callback) => {
 };
 
 // Add a comment to a friend's drink
+// Add a comment to a friend's drink
 export const addComment = async (ownerId, drinkId, commenterUid, commenterUsername, text) => {
     if (!text || text.trim().length === 0) throw new Error("Comment cannot be empty");
     if (text.length > 200) throw new Error("Comment too long (max 200 chars)");
@@ -436,6 +437,22 @@ export const addComment = async (ownerId, drinkId, commenterUid, commenterUserna
             text: text.trim(),
             timestamp: Date.now()
         });
+
+        // Notify the owner if it's not their own comment
+        if (ownerId !== commenterUid) {
+            try {
+                await addDoc(collection(db, "users", ownerId, "notifications"), {
+                    message: `${commenterUsername} commented: "${text.trim()}"`,
+                    type: 'comment',
+                    drinkId: drinkId,
+                    fromUid: commenterUid,
+                    timestamp: Date.now()
+                });
+            } catch (err) {
+                console.warn("Failed to send comment notification:", err);
+            }
+        }
+
         return true;
     } catch (error) {
         console.error("Error adding comment:", error);

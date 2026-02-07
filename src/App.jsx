@@ -150,13 +150,28 @@ function App() {
                   title: "New Jäger! 🦌",
                   body: notif.message,
                   id: Math.floor(Math.random() * 10000),
-                  schedule: { at: new Date(Date.now() + 100) }
+                  schedule: { at: new Date(Date.now() + 100) },
+                  extra: { drinkId: notif.drinkId }
                 }
               ]
             });
           } else {
+            // Web notification (optional, maybe toast?)
           }
         });
+
+        // Handle Local Notification Click
+        if (Capacitor.isNativePlatform()) {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+            const drinkId = notification.notification.extra?.drinkId;
+            if (drinkId) {
+              setTargetDrinkId(drinkId);
+              setView('feed');
+            }
+          });
+        }
+
         return unsub;
       }
     };
