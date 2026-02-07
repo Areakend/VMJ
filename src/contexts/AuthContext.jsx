@@ -50,6 +50,7 @@ export function AuthProvider({ children }) {
 
                 if (isMobile) {
                     setSyncStatus("Redirecting to Google...");
+                    sessionStorage.setItem('auth_redirect', 'true'); // Flag to track redirect
                     return await signInWithRedirect(auth, googleProvider);
                 } else {
                     // Desktop: Use Popup (most reliable across domains/incognito)
@@ -99,34 +100,30 @@ export function AuthProvider({ children }) {
             }
         }, 10000);
 
-        // Check if we are potentially in a redirect callback
-        const hasRedirectParams = window.location.search.includes('apiKey') ||
-            window.location.search.includes('oobCode') ||
-            window.location.hash.includes('access_token') ||
-            window.location.search.includes('state=');
+        // Check if we are potentially in a redirect callback via sessionStorage flag
+        const isRedirecting = sessionStorage.getItem('auth_redirect') === 'true';
 
-
-        if (hasRedirectParams) {
+        if (isRedirecting) {
             setSyncStatus("Syncing account...");
         }
 
         // Handle redirect results 
         getRedirectResult(auth)
             .then((result) => {
+                sessionStorage.removeItem('auth_redirect'); // Clear flag
                 if (result) {
                     setSyncStatus("Loading profile...");
                     // User is signed in, onAuthStateChanged will handle the rest
                 } else {
-                    // No redirect result found. 
-                    // If we THOUGHT there was a redirect (hasRedirectParams), but firebase says no,
-                    // we must stop loading so the user isn't stuck.
-                    if (hasRedirectParams) {
-                        console.warn("[AUTH] Redirect params present but no result. Clearing load state.");
+                    // Redirect finished but no result (cancelled or error swallowed)
+                    if (isRedirecting) {
+                        console.warn("[AUTH] Redirect flag was set but no result. Clearing load state.");
                         setLoading(false);
                     }
                 }
             })
             .catch((error) => {
+                sessionStorage.removeItem('auth_redirect'); // Clear flag
                 console.error("[AUTH] Redirect error:", error);
                 const domain = window.location.hostname;
                 if (error.code === 'auth/unauthorized-domain') {
@@ -161,8 +158,10 @@ export function AuthProvider({ children }) {
                 return () => unsubDoc();
             } else {
                 setUserData(null);
+
                 // Only stop loading if we are NOT waiting for a redirect check
-                if (!hasRedirectParams) {
+                const stillRedirecting = sessionStorage.getItem('auth_redirect') === 'true';
+                if (!stillRedirecting) {
                     setLoading(false);
                 }
                 clearTimeout(safetyTimeout);
