@@ -12,7 +12,8 @@ import {
     setDoc,
     getDocs,
     where,
-    increment
+    increment,
+    deleteField
 } from "firebase/firestore";
 
 // ... (lines 16-439 omitted for brevity in replacement, but I must match exact target content for the tool)
@@ -401,6 +402,13 @@ export const addReaction = async (ownerId, drinkId, reactorUid, reactorUsername,
             emoji: emoji,
             timestamp: Date.now()
         });
+
+        // Sync to parent for preview
+        const drinkRef = doc(db, "users", ownerId, "drinks", drinkId);
+        await setDoc(drinkRef, {
+            [`reactions.${reactorUid}`]: emoji
+        }, { merge: true });
+
         return true;
     } catch (error) {
         console.error("Error adding reaction:", error);
@@ -413,6 +421,15 @@ export const removeReaction = async (ownerId, drinkId, reactorUid) => {
     try {
         const reactionRef = doc(db, "users", ownerId, "drinks", drinkId, "reactions", reactorUid);
         await deleteDoc(reactionRef);
+
+        // Sync removal from parent
+        const drinkRef = doc(db, "users", ownerId, "drinks", drinkId);
+        // Ensure we remove that specific key using FieldValue.delete() logic or similar
+        // Firestore update with dot notation works for map fields
+        await setDoc(drinkRef, {
+            [`reactions.${reactorUid}`]: deleteField()
+        }, { merge: true });
+
         return true;
     } catch (error) {
         console.error("Error removing reaction:", error);

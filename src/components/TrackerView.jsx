@@ -295,6 +295,15 @@ export default function TrackerView({
                                         "{drink.comment}"
                                     </div>
                                 )}
+                                {drink.reactions && Object.keys(drink.reactions).length > 0 && (
+                                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                                        {Object.entries(drink.reactions).map(([uid, emoji]) => (
+                                            <span key={uid} style={{ fontSize: '0.9rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1px 4px' }}>
+                                                {emoji}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
