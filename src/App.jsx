@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MapPin, Users, Target, Map as MapIcon, Calendar, Check, User, Rss, ChevronRight, X } from 'lucide-react'
 import { Keyboard } from '@capacitor/keyboard'
 import Sidebar from './components/Sidebar';
+import UpdateModal from './components/UpdateModal';
 import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
@@ -18,6 +19,7 @@ import CrewSelector from './components/CrewSelector'
 import FriendsFeed from './components/FriendsFeed'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest } from './utils/storage'
 import { addEventDrink, subscribeToMyEvents, subscribeToPublicEvents } from './utils/events'
+import { checkForUpdate } from './utils/versionChecker'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
@@ -54,6 +56,7 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [targetDrinkId, setTargetDrinkId] = useState(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(null);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.warn("Silent loc fail", e));
@@ -90,6 +93,17 @@ function App() {
       };
     }
   }, [currentUser]);
+
+  // Check for app updates
+  useEffect(() => {
+    if (currentUser && userData) {
+      checkForUpdate('0.3.2').then(release => {
+        if (release) {
+          setUpdateAvailable(release);
+        }
+      });
+    }
+  }, [currentUser, userData]);
 
   // Initial selected UIDs for Map
   useEffect(() => {
@@ -779,6 +793,13 @@ function App() {
       }
 
 
+
+      {updateAvailable && (
+        <UpdateModal
+          release={updateAvailable}
+          onClose={() => setUpdateAvailable(null)}
+        />
+      )}
 
       <Sidebar
         isOpen={showSidebar}

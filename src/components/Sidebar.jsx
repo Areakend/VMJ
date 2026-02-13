@@ -1,9 +1,16 @@
-import { X, LogOut, CircleHelp, Info, FileText } from 'lucide-react';
+import { X, LogOut, CircleHelp, Info, FileText, Edit2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHelp, totalDrinks }) {
     const [showAbout, setShowAbout] = useState(false);
     const [showChangelog, setShowChangelog] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newUsername, setNewUsername] = useState('');
+    const [editError, setEditError] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const { updateUsername, deleteAccount } = useAuth();
 
     const menuItemStyle = {
         display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
@@ -14,9 +21,31 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
     };
 
     const changelogItems = [
+        { v: '0.3.2', date: '2026-02-13', changes: ['Profile Management (Edit Username, Delete Account)', 'Version Update Checker', 'Event Leaderboard by Volume (cl)', 'Enhanced Security (server-side username validation)'] },
         { v: '0.3.1', date: '2026-02-05', changes: ['Social Feed with Reactions & Comments', 'Notification Deep Linking', 'Keyboard visibility navigation toggle', 'UI polish & rounded buttons'] },
         { v: '0.2.0', date: '2026-02-01', changes: ['Crew Selector filtering', 'Custom Volume Bottle UI', 'Event system live', 'Android App Links support'] }
     ];
+
+    const handleUpdateUsername = async () => {
+        if (!newUsername.trim()) return;
+        setEditError(null);
+        try {
+            await updateUsername(newUsername.trim());
+            setIsEditingName(false);
+        } catch (error) {
+            setEditError(error.message);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        try {
+            await deleteAccount();
+            onClose();
+        } catch (error) {
+            alert("Failed to delete account: " + error.message);
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <>
@@ -58,7 +87,45 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                     }}>
                         {userData?.username?.charAt(0).toUpperCase()}
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '1.3rem' }}>{userData?.username}</h3>
+
+                    {!isEditingName ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.3rem' }}>{userData?.username}</h3>
+                            <button
+                                onClick={() => { setIsEditingName(true); setNewUsername(userData?.username || ''); setEditError(null); }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666', padding: '4px' }}
+                                title="Edit username"
+                            >
+                                <Edit2 size={14} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <input
+                                type="text"
+                                value={newUsername}
+                                onChange={(e) => setNewUsername(e.target.value)}
+                                placeholder="New username"
+                                maxLength={15}
+                                style={{
+                                    background: 'rgba(0,0,0,0.3)', border: '1px solid #444', color: 'white',
+                                    padding: '8px', borderRadius: '8px', textAlign: 'center', width: '100%'
+                                }}
+                            />
+                            {editError && <span style={{ color: '#ff4444', fontSize: '0.7rem' }}>{editError}</span>}
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button
+                                    onClick={() => { setIsEditingName(false); setEditError(null); }}
+                                    style={{ padding: '6px 12px', borderRadius: '6px', background: '#333', border: 'none', color: '#aaa', cursor: 'pointer' }}
+                                >Cancel</button>
+                                <button
+                                    onClick={handleUpdateUsername}
+                                    style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--jager-orange)', border: 'none', color: '#000', fontWeight: 'bold', cursor: 'pointer' }}
+                                >Save</button>
+                            </div>
+                        </div>
+                    )}
+
                     <p style={{ margin: '5px 0 0', color: '#888', fontSize: '0.8rem', fontWeight: 'bold' }}> {totalDrinks || 0} lifetime shots</p>
                 </div>
 
@@ -105,8 +172,26 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                     <button onClick={onLogout} style={{ ...menuItemStyle, color: '#ff4444', justifyContent: 'center', background: 'rgba(255, 0, 0, 0.05)' }}>
                         <LogOut size={20} /> Logout
                     </button>
+
+                    {!isDeleting ? (
+                        <button
+                            onClick={() => setIsDeleting(true)}
+                            style={{ width: '100%', marginTop: '8px', background: 'none', border: 'none', color: '#666', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                            Delete Account
+                        </button>
+                    ) : (
+                        <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255,0,0,0.1)', borderRadius: '8px', border: '1px solid rgba(255,0,0,0.3)' }}>
+                            <p style={{ color: '#ff4444', fontSize: '0.8rem', margin: '0 0 8px 0', textAlign: 'center' }}>Are you sure? This is permanent.</p>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => setIsDeleting(false)} style={{ flex: 1, padding: '4px', background: '#333', border: 'none', color: '#aaa', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Cancel</button>
+                                <button onClick={handleDeleteAccount} style={{ flex: 1, padding: '4px', background: '#ff4444', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Confirm</button>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ textAlign: 'center', marginTop: '1rem', color: '#444', fontSize: '0.7rem' }}>
-                        v0.3.1 (Social Update)
+                        v0.3.2 (User Management Update)
                     </div>
                 </div>
             </div>

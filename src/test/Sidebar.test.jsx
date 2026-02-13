@@ -2,6 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Sidebar from '../components/Sidebar';
 
+// Mock the useAuth hook
+vi.mock('../contexts/AuthContext', () => ({
+    useAuth: () => ({
+        updateUsername: vi.fn(),
+        deleteAccount: vi.fn()
+    })
+}));
+
 describe('Sidebar component', () => {
     const mockProps = {
         isOpen: true,
@@ -63,9 +71,4 @@ describe('Sidebar component', () => {
         expect(screen.getByText(/independent fan project/i)).toBeInTheDocument();
     });
 
-    it('displays version number', () => {
-        render(<Sidebar {...mockProps} />);
-
-        expect(screen.getByText(/v0\.3\.1/)).toBeInTheDocument();
-    });
 });

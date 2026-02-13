@@ -296,12 +296,41 @@ export default function TrackerView({
                                     </div>
                                 )}
                                 {drink.reactions && Object.keys(drink.reactions).length > 0 && (
-                                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                                        {Object.entries(drink.reactions).map(([uid, emoji]) => (
-                                            <span key={uid} style={{ fontSize: '0.9rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1px 4px' }}>
-                                                {emoji}
+                                    <div
+                                        onClick={() => toggleReactions(drink.id)}
+                                        style={{ marginTop: '4px', cursor: 'pointer' }}
+                                    >
+                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                            {Object.entries(drink.reactions).map(([uid, emoji]) => (
+                                                <span key={uid} style={{ fontSize: '0.9rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1px 4px' }}>
+                                                    {emoji}
+                                                </span>
+                                            ))}
+                                            <span style={{ fontSize: '0.7rem', color: '#666', marginLeft: '4px' }}>
+                                                {expandedReactions[drink.id] ? '(hide)' : '(who?)'}
                                             </span>
-                                        ))}
+                                        </div>
+
+                                        {expandedReactions[drink.id] && (
+                                            <div style={{
+                                                marginTop: '6px',
+                                                background: 'rgba(0,0,0,0.2)',
+                                                borderRadius: '8px',
+                                                padding: '6px',
+                                                fontSize: '0.8rem',
+                                                color: '#aaa'
+                                            }}>
+                                                {Object.entries(drink.reactions).map(([uid, emoji]) => {
+                                                    const name = uid === currentUser.uid ? 'You' : (friends.find(f => f.uid === uid)?.username || 'Unknown');
+                                                    return (
+                                                        <div key={uid} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                                            <span>{name}</span>
+                                                            <span>{emoji}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

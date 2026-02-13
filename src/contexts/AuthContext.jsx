@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, googleProvider, db } from "../firebase";
-import { signInWithRedirect, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, getRedirectResult, signInWithPopup } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { signInWithRedirect, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, getRedirectResult, signInWithPopup, deleteUser } from "firebase/auth";
+import { doc, onSnapshot, runTransaction, getDoc, deleteDoc, collection } from "firebase/firestore";
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
@@ -86,6 +86,103 @@ export function AuthProvider({ children }) {
             await GoogleAuth.signOut();
         }
         return signOut(auth);
+    }
+
+    // Update Username
+    async function updateUsername(newUsername) {
+        if (!currentUser) throw new Error("No user logged in");
+
+        // Import validation from storage
+        const { validateUsername } = await import("../utils/storage");
+        const error = validateUsername(newUsername);
+        if (error) throw new Error(error);
+
+        const lowerUsername = newUsername.toLowerCase().trim();
+        const userRef = doc(db, "users", currentUser.uid);
+        const newUsernameRef = doc(db, "usernames", lowerUsername);
+
+        // We need to know the OLD username to free it up
+        // We can get it from userData state, but safer to get from Transaction to avoid race conditions
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                // 1. Check if new username is taken
+                const newUsernameDoc = await transaction.get(newUsernameRef);
+                if (newUsernameDoc.exists()) {
+                    throw new Error("Username already taken");
+                }
+
+                // 2. Get current user data to find old username
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) throw new Error("User profile not found");
+
+                const oldUsernameLower = userDoc.data().usernameLower;
+
+                // 3. Reserve new username
+                transaction.set(newUsernameRef, { uid: currentUser.uid });
+
+                // 4. Update user profile
+                transaction.update(userRef, {
+                    username: newUsername,
+                    usernameLower: lowerUsername
+                });
+
+                // 5. Release old username (if different and exists)
+                if (oldUsernameLower && oldUsernameLower !== lowerUsername) {
+                    const oldUsernameRef = doc(db, "usernames", oldUsernameLower);
+                    transaction.delete(oldUsernameRef);
+                }
+            });
+            return true;
+        } catch (error) {
+            console.error("Error updating username:", error);
+            throw error;
+        }
+    }
+
+    // Delete Account
+    async function deleteAccount() {
+        if (!currentUser) throw new Error("No user logged in");
+
+        const uid = currentUser.uid;
+
+        try {
+            // 1. Delete Firestore Data
+            // Note: This is complex because we need to delete subcollections (drinks, friends, etc.)
+            // Firestore doesn't support recursive delete from client SDK easily.
+            // For now, we will just delete the main user document and let cloud functions (if any) or manual cleanup handle the rest.
+            // OR we rely on the fact that if the user doc is gone, the app treats them as non-existent.
+            // A better approach for client-side is to at least delete the user doc and username reservation.
+
+            const userRef = doc(db, "users", uid);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                const usernameLower = userData.usernameLower;
+
+                // Release username
+                if (usernameLower) {
+                    await deleteDoc(doc(db, "usernames", usernameLower));
+                }
+
+                // Delete user profile
+                await deleteDoc(userRef);
+            }
+
+            // 2. Delete Auth Account
+            // Important: This might fail if the user hasn't logged in recently.
+            // We should catch that and ask them to re-login.
+            await deleteUser(currentUser);
+
+            return true;
+        } catch (error) {
+            console.error("Error deleting account:", error);
+            if (error.code === 'auth/requires-recent-login') {
+                throw new Error("Please log out and log back in to delete your account."); // Security requirement
+            }
+            throw error;
+        }
     }
 
     useEffect(() => {
@@ -179,7 +276,9 @@ export function AuthProvider({ children }) {
         userData,
         loading,
         login,
-        logout
+        logout,
+        updateUsername,
+        deleteAccount
     };
 
     return (

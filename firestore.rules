@@ -19,7 +19,10 @@ service cloud.firestore {
     // User profiles and basic data
     match /users/{uid} {
       allow read: if isSignedIn(); // Allow reading profiles for social features
-      allow write: if isOwner(uid);
+      // Validate username format on write (defense-in-depth)
+      allow write: if isOwner(uid) && 
+        (!request.resource.data.keys().hasAny(['username']) || 
+         isValidUsername(request.resource.data.username));
 
       // Drinks - owner can do anything, friends can read
       match /drinks/{drinkId} {
@@ -27,7 +30,14 @@ service cloud.firestore {
         // Allow create if Owner OR if Friend AND the creatorId matches the authenticated user (Tagging)
         allow create: if isOwner(uid) || (isFriend(uid) && request.resource.data.creatorId == request.auth.uid);
         // Allow update/delete if Owner OR if the creatorId matches the authenticated user (Tagging)
-        allow update, delete: if isOwner(uid) || (isFriend(uid) && resource.data.creatorId == request.auth.uid);
+        // Allow update if Owner 
+        // OR if Creator (Tagging)
+        // OR if Friend updating social stats/reactions only
+        allow update: if isOwner(uid) 
+                      || (isFriend(uid) && resource.data.creatorId == request.auth.uid)
+                      || (isFriend(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'commentCount', 'lastCommenterId', 'lastCommentTimestamp']));
+        
+        allow delete: if isOwner(uid) || (isFriend(uid) && resource.data.creatorId == request.auth.uid);
         
         // Reactions subcollection - friends can add/remove their own reactions
         match /reactions/{reactionId} {
