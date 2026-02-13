@@ -13,9 +13,10 @@ import CommentSection from './CommentSection';
 
 const REACTION_EMOJIS = ['🍻', '🎉', '🔥', '😵'];
 
-function DrinkCard({ drink, currentUser, userData, targetDrinkId }) {
+function DrinkCard({ drink, currentUser, userData, targetDrinkId, friends }) {
 
     const [reactions, setReactions] = useState([]);
+    const [showReactors, setShowReactors] = useState(false);
     const cardRef = useRef(null);
 
     const isHighlighted = targetDrinkId === drink.id;
@@ -144,6 +145,36 @@ function DrinkCard({ drink, currentUser, userData, targetDrinkId }) {
                 })}
             </div>
 
+            {reactions.length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                    <div
+                        onClick={() => setShowReactors(!showReactors)}
+                        style={{ fontSize: '0.75rem', color: '#888', cursor: 'pointer', display: 'inline-block' }}
+                    >
+                        {showReactors ? 'Hide reactions' : `See who reacted (${reactions.length})`}
+                    </div>
+
+                    {showReactors && (
+                        <div style={{
+                            marginTop: '6px',
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: '8px',
+                            padding: '8px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px'
+                        }}>
+                            {reactions.map(r => (
+                                <div key={r.id || r.uid} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#ccc' }}>
+                                    <span>{r.uid === currentUser.uid ? 'You' : r.username}</span>
+                                    <span>{r.emoji}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Comment Section Replaced */}
             <CommentSection
                 drinkId={drink.id}
@@ -242,6 +273,7 @@ export default function FriendsFeed({ targetDrinkId }) {
                     currentUser={currentUser}
                     userData={userData}
                     targetDrinkId={targetDrinkId}
+                    friends={friends}
                 />
             ))}
         </div>
