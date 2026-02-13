@@ -2,6 +2,24 @@
 
 All notable changes to the Jäger Tracker (ViteMonJager) project will be documented in this file.
 
+## [0.3.2] - 2026-02-13 (User Management & Quality Update)
+
+### Added
+- **Profile Management**: Users can now edit their username and delete their account from the Sidebar.
+  - Username validation enforced both client and server-side (alphanumeric + underscore, 3-15 chars)
+  - Account deletion with two-step confirmation
+- **Version Update Checker**: Automatic notification when new app version is available on GitHub.
+  - Shows release notes in elegant modal
+  - Users can download update, remind later, or skip version
+  - Smart caching (checks once per 24 hours)
+- **Event Leaderboard by Volume**: Events now rank participants by total volume (cl) instead of shot count.
+
+### Changed
+- Enhanced server-side security: Firestore rules now validate username format on write operations (defense-in-depth).
+
+### Fixed
+- Sidebar tests now properly mock the useAuth hook for new profile management methods.
+
 ## [0.3.1] - 2026-02-05 (Social & UX Update)
 
 ### Added

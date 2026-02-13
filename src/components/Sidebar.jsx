@@ -21,6 +21,7 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
     };
 
     const changelogItems = [
+        { v: '0.3.2', date: '2026-02-13', changes: ['Profile Management (Edit Username, Delete Account)', 'Version Update Checker', 'Event Leaderboard by Volume (cl)', 'Enhanced Security (server-side username validation)'] },
         { v: '0.3.1', date: '2026-02-05', changes: ['Social Feed with Reactions & Comments', 'Notification Deep Linking', 'Keyboard visibility navigation toggle', 'UI polish & rounded buttons'] },
         { v: '0.2.0', date: '2026-02-01', changes: ['Crew Selector filtering', 'Custom Volume Bottle UI', 'Event system live', 'Android App Links support'] }
     ];
@@ -190,7 +191,7 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                     )}
 
                     <div style={{ textAlign: 'center', marginTop: '1rem', color: '#444', fontSize: '0.7rem' }}>
-                        v0.3.1 (Social Update)
+                        v0.3.2 (User Management Update)
                     </div>
                 </div>
             </div>

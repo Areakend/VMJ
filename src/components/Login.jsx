@@ -29,7 +29,7 @@ export default function Login() {
                     fontSize: '0.65rem', color: '#444',
                     letterSpacing: '2px', fontWeight: 'bold'
                 }}>
-                    STABLE v0.3.1
+                    STABLE v0.3.2
                 </div>
             </div>
 
