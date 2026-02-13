@@ -177,7 +177,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
         leaderboard[d.uid].volume += d.volume || 0;
     });
 
-    const sortedLeaderboard = Object.values(leaderboard).sort((a, b) => b.shots - a.shots);
+    const sortedLeaderboard = Object.values(leaderboard).sort((a, b) => b.volume - a.volume);
 
     return (
         <div style={{ paddingBottom: '100px' }}>
@@ -346,7 +346,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <div style={{ fontWeight: 'bold', color: 'var(--jager-orange)' }}>
-                                {user.shots} shots
+                                {user.volume}cl
                             </div>
                             {event.creator.uid === currentUser.uid && user.uid !== currentUser.uid && (
                                 <button

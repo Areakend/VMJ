@@ -19,7 +19,10 @@ service cloud.firestore {
     // User profiles and basic data
     match /users/{uid} {
       allow read: if isSignedIn(); // Allow reading profiles for social features
-      allow write: if isOwner(uid);
+      // Validate username format on write (defense-in-depth)
+      allow write: if isOwner(uid) && 
+        (!request.resource.data.keys().hasAny(['username']) || 
+         isValidUsername(request.resource.data.username));
 
       // Drinks - owner can do anything, friends can read
       match /drinks/{drinkId} {
