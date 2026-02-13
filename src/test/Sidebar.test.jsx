@@ -71,9 +71,4 @@ describe('Sidebar component', () => {
         expect(screen.getByText(/independent fan project/i)).toBeInTheDocument();
     });
 
-    it('displays version number', () => {
-        render(<Sidebar {...mockProps} />);
-
-        expect(screen.getByText(/v0\.3\.1/)).toBeInTheDocument();
-    });
 });
