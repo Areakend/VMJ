@@ -84,5 +84,29 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn() && (resource == null || resource.data.uid == request.auth.uid);
     }
+
+    // Events Management
+    match /events/{eventId} {
+      function isEventCreator() {
+        return isSignedIn() && resource.data.creator.uid == request.auth.uid;
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      // Allow update if Creator OR if signed in (for joining/adding shots - simplistic for now)
+      allow update: if isSignedIn();
+      // Only creator can delete the whole event
+      allow delete: if isEventCreator();
+
+      match /drinks/{drinkId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+        // Creator of event OR creator of drink can delete
+        allow delete: if isSignedIn() && (
+          resource.data.uid == request.auth.uid || 
+          get(/databases/$(database)/documents/events/$(eventId)).data.creator.uid == request.auth.uid
+        );
+      }
+    }
   }
 }

@@ -161,7 +161,7 @@ export default function DrinkMap({ drinks, userLocation, publicEvents = [], show
                 ))}
 
                 {/* Public Events Markers */}
-                {publicEvents.map(event => {
+                {publicEvents.filter(e => e.status === 'open').map(event => {
                     if (!showEvents || !event.location) return null;
                     const distance = userLocation ? getDistanceFromLatLonInM(
                         userLocation.latitude, userLocation.longitude,

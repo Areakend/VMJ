@@ -57,6 +57,11 @@ function App() {
   const [targetDrinkId, setTargetDrinkId] = useState(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(null);
+  const friendsRef = useRef([]);
+
+  useEffect(() => {
+    friendsRef.current = friends;
+  }, [friends]);
 
   useEffect(() => {
     getCurrentLocation().then(loc => setLocationState(loc)).catch(e => console.warn("Silent loc fail", e));
@@ -156,6 +161,15 @@ function App() {
       if (currentPerm === 'granted') {
         const { subscribeToIncomingNotifications } = await import('./utils/storage');
         const unsub = subscribeToIncomingNotifications(currentUser.uid, async (notif) => {
+          // Mute Check
+          if (notif.fromUid) {
+            const sender = friendsRef.current.find(f => f.uid === notif.fromUid);
+            if (sender && sender.receiveDrinkNotifications === false) {
+              console.log("Blocking local notification from muted friend:", notif.fromUid);
+              return;
+            }
+          }
+
           if (Capacitor.isNativePlatform()) {
             const { LocalNotifications } = await import('@capacitor/local-notifications');
             await LocalNotifications.schedule({
