@@ -144,7 +144,7 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                             <p style={{ margin: 0, marginBottom: '8px' }}><strong style={{ color: 'white' }}>Jäger Tracker</strong></p>
                             <p style={{ margin: 0 }}>This application is an independent fan project and has no affiliation with the beverage brand.</p>
                             <p style={{ margin: '12px 0 0 0', fontSize: '0.75rem', fontStyle: 'italic', color: '#888', borderTop: '1px solid #444', paddingTop: '8px' }}>
-                                L'abus d'alcool est dangereux pour la santé, à consommer avec modération.
+                                Drink responsibly. Excessive alcohol consumption is dangerous for your health.
                             </p>
                         </div>
                     )}
