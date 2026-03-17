@@ -74,15 +74,20 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend", 
 
         // 2. Background: Send notifications to friends NOT in the drinking session
         try {
-            const friendsSnap = await getDocs(collection(db, "users", userId, "friends"));
-            const allFriendIds = friendsSnap.docs.map(doc => doc.id);
-            const buddyIds = buddies.map(b => b.uid);
+            // First check if the sender has opted out of sending notifications
+            const userDoc = await getDoc(doc(db, "users", userId));
+            const sendNotifications = userDoc.exists() && userDoc.data().sendDrinkNotifications !== false;
 
-            // Only notify friends who WEREN'T there
-            const friendsToNotify = allFriendIds.filter(id => !buddyIds.includes(id));
+            if (sendNotifications) {
+                const friendsSnap = await getDocs(collection(db, "users", userId, "friends"));
+                const allFriendIds = friendsSnap.docs.map(doc => doc.id);
+                const buddyIds = buddies.map(b => b.uid);
 
-            if (friendsToNotify.length > 0) {
-                const now = Date.now();
+                // Only notify friends who WEREN'T there
+                const friendsToNotify = allFriendIds.filter(id => !buddyIds.includes(id));
+
+                if (friendsToNotify.length > 0) {
+                    const now = Date.now();
                 const { getRandomJagerMessage } = await import("./notifications");
                 const message = getRandomJagerMessage();
 
@@ -100,7 +105,8 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend", 
                 );
                 await Promise.all(batchPromises);
             }
-        } catch (err) {
+        }
+    } catch (err) {
             console.warn("Failed to send social notifications:", err);
         }
 
@@ -374,9 +380,23 @@ export const removeFriend = async (currentUserId, friendUid) => {
 export const subscribeToFriends = (userId, callback) => {
     const q = collection(db, "users", userId, "friends");
     return onSnapshot(q, (snapshot) => {
-        const friends = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const friends = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
         callback(friends);
     });
+};
+
+// Toggle receiving notifications from a specific friend
+export const toggleFriendNotification = async (userId, friendId, currentVal) => {
+    try {
+        const friendRef = doc(db, "users", userId, "friends", friendId);
+        // Default is true if undefined, so if currentVal is undefined/true, next is false.
+        const newVal = currentVal === false ? true : false;
+        await setDoc(friendRef, { receiveDrinkNotifications: newVal }, { merge: true });
+        return newVal;
+    } catch (error) {
+        console.error("Error toggling friend notification:", error);
+        throw error;
+    }
 };
 
 export const saveFcmToken = async (userId, token) => {

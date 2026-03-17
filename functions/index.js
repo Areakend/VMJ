@@ -27,6 +27,19 @@ exports.onNotificationCreated = onDocumentCreated("users/{uid}/notifications/{no
             return null;
         }
 
+        // 1b. Check if the receiver has muted this specific sender
+        const senderUid = data.fromUid;
+        if (senderUid) {
+            const friendSnap = await getFirestore().doc(`users/${uid}/friends/${senderUid}`).get();
+            if (friendSnap.exists()) {
+                const friendData = friendSnap.data();
+                if (friendData.receiveDrinkNotifications === false) {
+                    console.log(`User ${uid} has muted notifications from ${senderUid}. Aborting.`);
+                    return null;
+                }
+            }
+        }
+
         // 2. Prepare the push message
         const message = {
             notification: {

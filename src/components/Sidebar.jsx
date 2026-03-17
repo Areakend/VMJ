@@ -1,4 +1,4 @@
-import { X, LogOut, CircleHelp, Info, FileText, Edit2, Trash2 } from 'lucide-react';
+import { X, LogOut, CircleHelp, Info, FileText, Edit2, Trash2, Bell, BellOff } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,8 +9,10 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
     const [newUsername, setNewUsername] = useState('');
     const [editError, setEditError] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    // Default to true if undefined
+    const [sendNotifications, setSendNotifications] = useState(userData?.sendDrinkNotifications !== false);
 
-    const { updateUsername, deleteAccount } = useAuth();
+    const { updateUsername, deleteAccount, updateNotificationPreference } = useAuth();
 
     const menuItemStyle = {
         display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
@@ -127,6 +129,29 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                     )}
 
                     <p style={{ margin: '5px 0 0', color: '#888', fontSize: '0.8rem', fontWeight: 'bold' }}> {totalDrinks || 0} lifetime shots</p>
+                    
+                    {/* Notify Friends Toggle */}
+                    <div style={{ marginTop: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {sendNotifications ? <Bell size={18} color="var(--jager-orange)" /> : <BellOff size={18} color="#666" />}
+                            <div style={{ textAlign: 'left' }}>
+                                <div style={{ fontSize: '0.85rem', color: sendNotifications ? 'white' : '#888', fontWeight: 'bold' }}>Notify Crew</div>
+                                <div style={{ fontSize: '0.7rem', color: '#666' }}>Send alerts when I drink</div>
+                            </div>
+                        </div>
+                        <label className="switch">
+                            <input
+                                type="checkbox"
+                                checked={sendNotifications}
+                                onChange={async (e) => {
+                                    const val = e.target.checked;
+                                    setSendNotifications(val);
+                                    await updateNotificationPreference(val);
+                                }}
+                            />
+                            <span className="slider round"></span>
+                        </label>
+                    </div>
                 </div>
 
                 {/* Menu Items */}

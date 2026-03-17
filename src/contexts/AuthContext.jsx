@@ -140,6 +140,21 @@ export function AuthProvider({ children }) {
         }
     }
 
+    // Update Notification Preference
+    async function updateNotificationPreference(sendDrinkNotifications) {
+        if (!currentUser) throw new Error("No user logged in");
+        try {
+            const userRef = doc(db, "users", currentUser.uid);
+            await runTransaction(db, async (transaction) => {
+                transaction.update(userRef, { sendDrinkNotifications });
+            });
+            return true;
+        } catch (error) {
+            console.error("Error updating notification preference:", error);
+            throw error;
+        }
+    }
+
     // Delete Account
     async function deleteAccount() {
         if (!currentUser) throw new Error("No user logged in");
@@ -278,6 +293,7 @@ export function AuthProvider({ children }) {
         login,
         logout,
         updateUsername,
+        updateNotificationPreference,
         deleteAccount
     };
 

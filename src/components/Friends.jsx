@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, X, Check, Trash2, Share2, Beer, ChevronRight } from 'lucide-react';
+import { UserPlus, Search, X, Check, Trash2, Share2, Beer, ChevronRight, Bell, BellOff } from 'lucide-react';
 import { Share } from '@capacitor/share';
-import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks } from '../utils/storage';
+import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks, toggleFriendNotification } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 
@@ -365,6 +365,20 @@ export default function Friends() {
                                 <span>{friend.username}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        await toggleFriendNotification(currentUser.uid, friend.uid, friend.receiveDrinkNotifications);
+                                    }}
+                                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}
+                                    title={friend.receiveDrinkNotifications === false ? "Enable notifications" : "Disable notifications"}
+                                >
+                                    {friend.receiveDrinkNotifications === false ? (
+                                        <BellOff size={18} color="#666" />
+                                    ) : (
+                                        <Bell size={18} color="var(--jager-orange)" />
+                                    )}
+                                </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
