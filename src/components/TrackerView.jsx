@@ -5,6 +5,7 @@ import EditModal from './EditModal';
 import CrewSelector from './CrewSelector';
 import CustomVolumeSelector from './CustomVolumeSelector';
 import CommentSection from './CommentSection';
+import HunterAlert from './HunterAlert';
 import { useState } from 'react';
 
 export default function TrackerView({
@@ -394,7 +395,14 @@ export default function TrackerView({
                     style={{ display: 'none' }}
                     accept=".json"
                 />
-            </div >
+            </div>
+
+            {/* Health Warning Footer */}
+            <div style={{ padding: '1.5rem 1rem 3rem 1rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.7rem', color: '#555', fontStyle: 'italic', margin: 0 }}>
+                    Drink responsibly. Excessive alcohol consumption is dangerous for your health.
+                </p>
+            </div>
 
             {editingDrink && (
                 <EditModal
@@ -441,6 +449,9 @@ export default function TrackerView({
                     />
                 )
             }
+
+            {/* Hunter hydration alert - every 3 drinks */}
+            <HunterAlert drinkCount={drinks.length} />
         </>
     );
 }

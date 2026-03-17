@@ -419,7 +419,12 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
                     </div>
                 </div>
             )}
-
+            {/* Health Warning Footer */}
+            <div style={{ padding: '2.5rem 1rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.7rem', color: '#555', fontStyle: 'italic', margin: 0 }}>
+                    Drink responsibly. Excessive alcohol consumption is dangerous for your health.
+                </p>
+            </div>
 
         </div>
     );

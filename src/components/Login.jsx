@@ -67,6 +67,18 @@ export default function Login() {
                 </svg>
                 Sign in with Google
             </button>
+
+            <div style={{
+                position: 'absolute',
+                bottom: '2rem',
+                fontSize: '0.7rem',
+                color: '#666',
+                textAlign: 'center',
+                padding: '0 20px',
+                fontStyle: 'italic'
+            }}>
+                Drink responsibly. Excessive alcohol consumption is dangerous for your health.
+            </div>
         </div>
     );
 }

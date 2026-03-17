@@ -175,7 +175,7 @@ function DrinkCard({ drink, currentUser, userData, targetDrinkId, friends }) {
                 </div>
             )}
 
-            {/* Comment Section Replaced */}
+            {/* Comment Section */}
             <CommentSection
                 drinkId={drink.id}
                 ownerId={drink.ownerId}
@@ -276,6 +276,13 @@ export default function FriendsFeed({ targetDrinkId }) {
                     friends={friends}
                 />
             ))}
+
+            {/* Health Warning Footer - Loi Évin */}
+            <div style={{ padding: '2rem 1rem', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: '1rem' }}>
+                <p style={{ fontSize: '0.7rem', color: '#555', fontStyle: 'italic', margin: 0 }}>
+                    Drink responsibly. Excessive alcohol consumption is dangerous for your health.
+                </p>
+            </div>
         </div>
     );
 }
