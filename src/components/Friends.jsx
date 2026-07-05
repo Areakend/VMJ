@@ -1,44 +1,22 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, X, Check, Trash2, Share2, Beer, ChevronRight } from 'lucide-react';
-import { Share } from '@capacitor/share';
+import { UserPlus, Search, X, Check, Trash2, Share2, ChevronRight } from 'lucide-react';
 import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks } from '../utils/storage';
+import { getTotalVolumeCl, getLastNightVolume } from '../utils/stats';
+import { shareLink, getShareBaseUrl } from '../utils/share';
 import { useAuth } from '../contexts/AuthContext';
-import { format } from 'date-fns';
 
 function FriendDetail({ friend, onClose }) {
     const [drinks, setDrinks] = useState([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = subscribeToDrinks(friend.uid, (data) => {
             setDrinks(data);
-            setLoading(false);
         });
         return () => unsubscribe();
     }, [friend.uid]);
 
-    const totalVolumeCl = drinks.reduce((acc, curr) => acc + (curr.volume || 2), 0);
-
-    const getLastNightVolume = () => {
-        const now = new Date();
-        const middayToday = new Date(now);
-        middayToday.setHours(12, 0, 0, 0);
-
-        let start, end;
-        if (now.getHours() >= 12) {
-            start = middayToday.getTime();
-            end = middayToday.getTime() + (24 * 60 * 60 * 1000);
-        } else {
-            start = middayToday.getTime() - (24 * 60 * 60 * 1000);
-            end = middayToday.getTime();
-        }
-
-        return drinks
-            .filter(d => d.timestamp >= start && d.timestamp < end)
-            .reduce((acc, curr) => acc + (curr.volume || 2), 0);
-    };
-
-    const lastNightVolume = getLastNightVolume();
+    const totalVolumeCl = getTotalVolumeCl(drinks);
+    const lastNightVolume = getLastNightVolume(drinks);
 
     return (
         <div style={{
@@ -205,41 +183,14 @@ export default function Friends() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ color: 'var(--jager-orange)', margin: 0 }}>Find a Drinking Buddy</h3>
                     <button
-                        onClick={async () => {
-                            const base = (window.location.origin && !window.location.origin.includes('localhost'))
-                                ? window.location.origin
-                                : 'https://quiet-heliotrope-f4ea50.netlify.app';
-                            const link = `${base}/add-friend?username=${userData.username}`;
-                            const title = 'Join my Jäger Crew!';
-                            const text = `Add me on Jäger Tracker: ${userData.username}`;
-
-                            try {
-                                if (Capacitor.isNativePlatform()) {
-                                    await Share.share({
-                                        title,
-                                        text: `${text} ${link}`,
-                                        url: `vitemonjager://add-friend?username=${userData.username}`,
-                                        dialogTitle: 'Share your profile',
-                                    });
-                                } else if (navigator.share) {
-                                    await navigator.share({
-                                        title,
-                                        text: `${text} ${link}`,
-                                        url: link,
-                                    });
-                                } else {
-                                    throw new Error('Web Share not supported');
-                                }
-                            } catch (e) {
-                                try {
-                                    await navigator.clipboard.writeText(`${text} ${link}`);
-                                    alert("Profile link copied to clipboard! 🦌");
-                                } catch (err) {
-                                    console.error('Clipboard failed', err);
-                                    alert(`Your Profile Link: ${link}`);
-                                }
-                            }
-                        }}
+                        onClick={() => shareLink({
+                            title: 'Join my Jäger Crew!',
+                            text: `Add me on Jäger Tracker: ${userData.username}`,
+                            link: `${getShareBaseUrl()}/add-friend?username=${userData.username}`,
+                            nativeUrl: `vitemonjager://add-friend?username=${userData.username}`,
+                            dialogTitle: 'Share your profile',
+                            copiedMessage: 'Profile link copied to clipboard! 🦌'
+                        })}
                         style={{
                             background: 'transparent',
                             color: 'var(--text-secondary)',

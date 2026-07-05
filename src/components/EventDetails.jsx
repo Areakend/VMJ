@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink, removeParticipant } from '../utils/events';
+import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, addEventDrink, removeParticipant, ensureParticipantIds } from '../utils/events';
 import { format } from 'date-fns';
 import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X, LogIn } from 'lucide-react';
-import { Share } from '@capacitor/share';
+import { shareLink, getShareBaseUrl } from '../utils/share';
 import { db } from '../firebase';
-import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
+import { onSnapshot, doc, collection, query, orderBy } from 'firebase/firestore';
 import JagerRoulette from './JagerRoulette';
 
 export default function EventDetails({ eventId, currentUser, userData, friends, onBack }) {
@@ -17,7 +17,10 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "events", eventId), (doc) => {
             if (doc.exists()) {
-                setEvent({ id: doc.id, ...doc.data() });
+                const data = doc.data();
+                setEvent({ id: doc.id, ...data });
+                // Backfill the queryable uid list on legacy events
+                ensureParticipantIds(doc.id, data);
             }
         });
         return () => unsub();
@@ -79,41 +82,13 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
         }
     };
 
-    const handleShareEvent = async () => {
-        const base = (window.location.origin && !window.location.origin.includes('localhost'))
-            ? window.location.origin
-            : 'https://quiet-heliotrope-f4ea50.netlify.app';
-        const link = `${base}/event?id=${eventId}`;
-        const title = `Join our Jäger Event: ${event.title}`;
-        const text = `Click to join "${event.title}" on Jäger Tracker!`;
-
-        try {
-            if (Capacitor.isNativePlatform()) {
-                await Share.share({
-                    title,
-                    text: `${text} ${link}`,
-                    url: `vitemonjager://event?id=${eventId}`,
-                    dialogTitle: 'Share Event',
-                });
-            } else if (navigator.share) {
-                await navigator.share({
-                    title,
-                    text: `${text} ${link}`,
-                    url: link,
-                });
-            } else {
-                throw new Error('Web Share not supported');
-            }
-        } catch (e) {
-            try {
-                await navigator.clipboard.writeText(`${text} ${link}`);
-                alert("Link copied to clipboard! 🦌");
-            } catch (err) {
-                console.error('Clipboard failed', err);
-                alert(`Event Link: ${link}`);
-            }
-        }
-    };
+    const handleShareEvent = () => shareLink({
+        title: `Join our Jäger Event: ${event.title}`,
+        text: `Click to join "${event.title}" on Jäger Tracker!`,
+        link: `${getShareBaseUrl()}/event?id=${eventId}`,
+        nativeUrl: `vitemonjager://event?id=${eventId}`,
+        dialogTitle: 'Share Event',
+    });
 
     const handleRemoveParticipant = async (participant) => {
         if (!window.confirm(`Kick ${participant.username} from the event?`)) return;

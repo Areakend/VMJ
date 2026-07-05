@@ -4,7 +4,7 @@ import { getCurrentLocation } from '../utils/location';
 import { Calendar, Plus, Users, ChevronRight, Trophy, MapPin, CircleHelp, X } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function EventsView({ currentUser, userData, friends, onSelectEvent }) {
+export default function EventsView({ currentUser, userData, onSelectEvent }) {
     const [events, setEvents] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
@@ -32,6 +32,7 @@ export default function EventsView({ currentUser, userData, friends, onSelectEve
             setIsPublic(false);
             setEventLocation(null);
         } catch (err) {
+            console.error("Error creating event:", err);
             alert("Error creating event");
         }
     };

@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 import {
-    getFirestore,
     initializeFirestore,
     persistentLocalCache,
     persistentMultipleTabManager
@@ -37,11 +36,19 @@ export const db = initializeFirestore(app, {
 });
 
 // --- Security: Firebase App Check ---
-// To prevent unauthorized traffic and DDoS, initialize App Check.
-// NOTE: You need to get a ReCaptcha Enterprise Site Key from the Firebase Console.
-/*
-initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider('YOUR_SITE_KEY_HERE'),
-    isTokenAutoRefreshEnabled: true
-});
-*/
+// Blocks traffic that doesn't come from the real app. Activates automatically
+// once VITE_RECAPTCHA_ENTERPRISE_SITE_KEY is set (get a ReCaptcha Enterprise
+// site key from the Firebase Console > App Check, then set the env var in
+// Netlify / .env.local). Remember to switch App Check from "monitor" to
+// "enforce" in the console only after confirming clients send valid tokens.
+const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+if (appCheckSiteKey) {
+    try {
+        initializeAppCheck(app, {
+            provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+            isTokenAutoRefreshEnabled: true
+        });
+    } catch (e) {
+        console.error("App Check initialization failed:", e);
+    }
+}

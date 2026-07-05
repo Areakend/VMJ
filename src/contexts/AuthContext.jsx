@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, googleProvider, db } from "../firebase";
-import { signInWithRedirect, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, getRedirectResult, signInWithPopup, deleteUser } from "firebase/auth";
-import { doc, onSnapshot, runTransaction, getDoc, deleteDoc, collection } from "firebase/firestore";
+import { signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, getRedirectResult, signInWithPopup, deleteUser } from "firebase/auth";
+import { doc, onSnapshot, runTransaction } from "firebase/firestore";
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components -- standard context hook pattern
 export function useAuth() {
     return useContext(AuthContext);
 }
@@ -141,40 +142,16 @@ export function AuthProvider({ children }) {
     }
 
     // Delete Account
+    // Deleting the Auth user triggers the onUserDeleted Cloud Function, which
+    // removes ALL Firestore data (profile, drinks, comments, friends links,
+    // username reservation, event membership). Deleting Auth first means a
+    // "requires-recent-login" failure leaves the account fully intact instead
+    // of half-deleted.
     async function deleteAccount() {
         if (!currentUser) throw new Error("No user logged in");
 
-        const uid = currentUser.uid;
-
         try {
-            // 1. Delete Firestore Data
-            // Note: This is complex because we need to delete subcollections (drinks, friends, etc.)
-            // Firestore doesn't support recursive delete from client SDK easily.
-            // For now, we will just delete the main user document and let cloud functions (if any) or manual cleanup handle the rest.
-            // OR we rely on the fact that if the user doc is gone, the app treats them as non-existent.
-            // A better approach for client-side is to at least delete the user doc and username reservation.
-
-            const userRef = doc(db, "users", uid);
-            const userSnap = await getDoc(userRef);
-
-            if (userSnap.exists()) {
-                const userData = userSnap.data();
-                const usernameLower = userData.usernameLower;
-
-                // Release username
-                if (usernameLower) {
-                    await deleteDoc(doc(db, "usernames", usernameLower));
-                }
-
-                // Delete user profile
-                await deleteDoc(userRef);
-            }
-
-            // 2. Delete Auth Account
-            // Important: This might fail if the user hasn't logged in recently.
-            // We should catch that and ask them to re-login.
             await deleteUser(currentUser);
-
             return true;
         } catch (error) {
             console.error("Error deleting account:", error);
@@ -307,7 +284,6 @@ export function AuthProvider({ children }) {
 
                     <button
                         onClick={() => {
-                            clearTimeout(timeout);
                             logout().then(() => window.location.reload());
                         }}
                         style={{

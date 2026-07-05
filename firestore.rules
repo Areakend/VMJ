@@ -57,13 +57,24 @@ service cloud.firestore {
 
       match /notifications/{notifId} {
         allow read, delete: if isOwner(uid);
-        // Allow others to send notifications (social tag/invite)
-        allow create: if isSignedIn();
+        // Social notifications (drink tags, comments): the sender must identify
+        // themselves truthfully (fromUid) so recipients can't be spoofed/spammed
+        // by arbitrary accounts pretending to be someone else.
+        allow create: if isSignedIn()
+                      && request.resource.data.fromUid == request.auth.uid
+                      && request.resource.data.message is string
+                      && request.resource.data.message.size() <= 500;
       }
 
       match /friendRequests/{senderId} {
         allow read, delete: if isOwner(uid);
         allow create: if isSignedIn() && request.auth.uid == senderId;
+      }
+
+      // Owner-only data (push tokens etc.) — Cloud Functions read this via the
+      // Admin SDK which bypasses rules.
+      match /private/{docId} {
+        allow read, write: if isOwner(uid);
       }
 
       match /friends/{friendId} {
@@ -82,7 +93,69 @@ service cloud.firestore {
     // Global username registry to enforce uniqueness
     match /usernames/{username} {
       allow read: if true;
-      allow write: if isSignedIn() && (resource == null || resource.data.uid == request.auth.uid);
+      // A user may only reserve a username FOR THEMSELVES (uid must match),
+      // and may only update/release reservations they own.
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && isValidUsername(username);
+      allow update: if isSignedIn()
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Events (group drinking sessions with live leaderboard)
+    // Private events are only visible to participants; public events are visible
+    // to everyone signed in. The flat `participantIds` array powers both the
+    // security check here and the array-contains query in the app.
+    // NOTE: the sharing model intentionally lets any signed-in user join via a
+    // shared link, so event UPDATES remain open to signed-in users (joining
+    // mutates the participants arrays). Legacy events without participantIds
+    // must be backfilled (scripts/backfill-participant-ids.js) BEFORE deploying
+    // these rules, or they become unreadable.
+    match /events/{eventId} {
+      function isEventCreator() {
+        return isSignedIn() && resource.data.creator.uid == request.auth.uid;
+      }
+      // Direct field access (not .get() with default) so the query planner can
+      // prove list reads from an array-contains filter; docs missing the field
+      // simply fail the check (deny), which is the intended legacy behavior.
+      function isEventParticipant() {
+        return isSignedIn()
+               && request.auth.uid in resource.data.participantIds;
+      }
+
+      allow read: if isSignedIn()
+                  && (resource.data.isPublic == true || isEventParticipant());
+      // Creator info must match the authenticated user on create, and the
+      // queryable uid list must start out consistent (creator only).
+      allow create: if isSignedIn()
+                    && request.resource.data.creator.uid == request.auth.uid
+                    && request.resource.data.participantIds == [request.auth.uid]
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 100;
+      // Joining, inviting, status toggles and aggregate counters all mutate the
+      // event doc; the creator identity must never change.
+      allow update: if isSignedIn()
+                    && request.resource.data.creator.uid == resource.data.creator.uid;
+      allow delete: if isEventCreator();
+
+      match /drinks/{drinkId} {
+        function parentEvent() {
+          return get(/databases/$(database)/documents/events/$(eventId)).data;
+        }
+        // Drink logs (incl. GPS) follow the parent event's visibility
+        allow read: if isSignedIn()
+                    && (parentEvent().isPublic == true
+                        || request.auth.uid in parentEvent().get('participantIds', []));
+        // A user logs event drinks under their own uid, and the "tag a buddy"
+        // flow also writes/deletes entries under the buddy's uid, so create and
+        // delete stay open to signed-in users for now.
+        // TODO: store the tagger's uid on event drink docs so delete can be
+        // restricted to (owner || tagger || event creator).
+        allow create, delete: if isSignedIn();
+      }
     }
   }
 }

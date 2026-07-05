@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
-import { MapPin, Users, Target, Map as MapIcon, Calendar, Check, User, Rss, ChevronRight, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Users, Target, Map as MapIcon, Calendar, User, Rss, X } from 'lucide-react'
 import { Keyboard } from '@capacitor/keyboard'
 import Sidebar from './components/Sidebar';
 import UpdateModal from './components/UpdateModal';
-import { format } from 'date-fns'
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
-import { getCurrentLocation, getAddressFromCoords, getCoordsFromAddress } from './utils/location'
+import { getCurrentLocation, getAddressFromCoords } from './utils/location'
+import { getTotalVolumeCl, getLastNightVolume } from './utils/stats'
 import { useAuth } from './contexts/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import Login from './components/Login'
@@ -20,6 +20,7 @@ import FriendsFeed from './components/FriendsFeed'
 import { subscribeToFriends, saveFcmToken, sendFriendRequest } from './utils/storage'
 import { addEventDrink, subscribeToMyEvents, subscribeToPublicEvents } from './utils/events'
 import { checkForUpdate } from './utils/versionChecker'
+import { version as APP_VERSION } from '../package.json'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App as CapApp } from '@capacitor/app'
 
@@ -44,7 +45,6 @@ function App() {
   const [selectedFilterBuddies, setSelectedFilterBuddies] = useState([]); // Array of {uid, username} for history filter
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const fileInputRef = useRef(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [activeEvents, setActiveEvents] = useState([]); // Events where I am status='active'
   const [publicEvents, setPublicEvents] = useState([]); // All open public events
@@ -79,12 +79,6 @@ function App() {
         setPublicEvents(events);
       });
 
-      saveFcmToken(currentUser.uid).then(token => {
-        if (token && Capacitor.getPlatform() !== 'web') {
-          saveFcmToken(currentUser.uid, token);
-        }
-      });
-
       return () => {
         unsubDrinks();
         unsubFriends();
@@ -97,7 +91,7 @@ function App() {
   // Check for app updates
   useEffect(() => {
     if (currentUser && userData) {
-      checkForUpdate('0.3.2').then(release => {
+      checkForUpdate(APP_VERSION).then(release => {
         if (release) {
           setUpdateAvailable(release);
         }
@@ -208,9 +202,6 @@ function App() {
 
         PushNotifications.addListener('registrationError', (err) => {
           console.error("Push Registration Error:", err);
-        });
-
-        PushNotifications.addListener('pushNotificationReceived', (notification) => {
         });
 
         // Handle notification tap - deep link to feed
@@ -572,35 +563,16 @@ function App() {
 
   // Stats
   const totalDrinks = drinks.length;
-  const totalVolumeCl = drinks.reduce((acc, curr) => acc + (curr.volume || 2), 0);
+  const totalVolumeCl = getTotalVolumeCl(drinks);
 
   // Shared Stats (when buddy filter is active)
   const sharedStats = selectedFilterBuddies.length > 0 ? {
     shots: filteredDrinks.length,
-    volume: filteredDrinks.reduce((acc, curr) => acc + (curr.volume || 2), 0)
+    volume: getTotalVolumeCl(filteredDrinks)
   } : null;
 
   // Last Night (Midday to Midday)
-  const getLastNightVolume = () => {
-    const now = new Date();
-    const middayToday = new Date(now);
-    middayToday.setHours(12, 0, 0, 0);
-
-    let start, end;
-    if (now.getHours() >= 12) {
-      start = middayToday.getTime();
-      end = middayToday.getTime() + (24 * 60 * 60 * 1000);
-    } else {
-      start = middayToday.getTime() - (24 * 60 * 60 * 1000);
-      end = middayToday.getTime();
-    }
-
-    return drinks
-      .filter(d => d.timestamp >= start && d.timestamp < end)
-      .reduce((acc, curr) => acc + (curr.volume || 2), 0);
-  };
-
-  const lastNightVolume = getLastNightVolume();
+  const lastNightVolume = getLastNightVolume(drinks);
 
 
   return (
@@ -733,7 +705,6 @@ function App() {
           totalDrinks={totalDrinks}
           totalVolumeCl={totalVolumeCl}
           lastNightVolume={lastNightVolume}
-          setShowMainHelp={setShowMainHelp}
         />
       )}
 

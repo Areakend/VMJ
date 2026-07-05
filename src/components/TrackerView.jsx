@@ -43,11 +43,15 @@ export default function TrackerView({
     filteredDrinks,
     totalDrinks,
     totalVolumeCl,
-    lastNightVolume,
-    setShowMainHelp
+    lastNightVolume
 }) {
     const fileInputRef = useRef(null);
     const [expandedCommentDrinkId, setExpandedCommentDrinkId] = useState(null);
+    const [expandedReactions, setExpandedReactions] = useState({});
+
+    const toggleReactions = (drinkId) => {
+        setExpandedReactions(prev => ({ ...prev, [drinkId]: !prev[drinkId] }));
+    };
 
     const toggleComments = (drinkId) => {
         if (expandedCommentDrinkId === drinkId) {

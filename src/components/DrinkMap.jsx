@@ -1,10 +1,9 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { format } from 'date-fns';
-import { getDistanceFromLatLonInM, inviteToEvent } from '../utils/events';
-import { Capacitor } from '@capacitor/core';
+import { getDistanceFromLatLonInM } from '../utils/events';
 
 // Robust SVG Icon as Data URL - High Contrast Version
 const stagSvg = `

@@ -2,13 +2,13 @@
 <html lang="en">
 
 <head>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
-             script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://www.gstatic.com; 
-             style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; 
-             img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com; 
-             connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org; 
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+             script-src 'self' 'unsafe-inline' https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.google.com;
+             style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+             img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com;
+             connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://api.github.com;
              font-src 'self' https://fonts.gstatic.com;
-             frame-src 'self' https://*.firebaseapp.com https://accounts.google.com;">
+             frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://www.google.com;">
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/assets/icon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -20,15 +20,7 @@
 <body>
   <div id="root"></div>
   <script type="module" src="src/main.jsx"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' })
-          .then(reg => console.log('SW registered:', reg))
-          .catch(err => console.log('SW registration failed:', err));
-      });
-    }
-  </script>
+  <!-- Service worker registration is injected by vite-plugin-pwa at build time -->
 </body>
 
 </html>
