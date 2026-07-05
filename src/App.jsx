@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import UpdateModal from './components/UpdateModal';
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords } from './utils/location'
+import { getTotalVolumeCl, getLastNightVolume } from './utils/stats'
 import { useAuth } from './contexts/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import Login from './components/Login'
@@ -562,35 +563,16 @@ function App() {
 
   // Stats
   const totalDrinks = drinks.length;
-  const totalVolumeCl = drinks.reduce((acc, curr) => acc + (curr.volume || 2), 0);
+  const totalVolumeCl = getTotalVolumeCl(drinks);
 
   // Shared Stats (when buddy filter is active)
   const sharedStats = selectedFilterBuddies.length > 0 ? {
     shots: filteredDrinks.length,
-    volume: filteredDrinks.reduce((acc, curr) => acc + (curr.volume || 2), 0)
+    volume: getTotalVolumeCl(filteredDrinks)
   } : null;
 
   // Last Night (Midday to Midday)
-  const getLastNightVolume = () => {
-    const now = new Date();
-    const middayToday = new Date(now);
-    middayToday.setHours(12, 0, 0, 0);
-
-    let start, end;
-    if (now.getHours() >= 12) {
-      start = middayToday.getTime();
-      end = middayToday.getTime() + (24 * 60 * 60 * 1000);
-    } else {
-      start = middayToday.getTime() - (24 * 60 * 60 * 1000);
-      end = middayToday.getTime();
-    }
-
-    return drinks
-      .filter(d => d.timestamp >= start && d.timestamp < end)
-      .reduce((acc, curr) => acc + (curr.volume || 2), 0);
-  };
-
-  const lastNightVolume = getLastNightVolume();
+  const lastNightVolume = getLastNightVolume(drinks);
 
 
   return (

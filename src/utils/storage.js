@@ -13,7 +13,8 @@ import {
     getDocs,
     where,
     increment,
-    deleteField
+    deleteField,
+    writeBatch
 } from "firebase/firestore";
 
 // --- Validation Helpers ---
@@ -50,23 +51,22 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend", 
             isShared: buddies.length > 0
         };
 
-        const docRef = await addDoc(getDrinksCollection(userId), enrichedDrink);
+        // Write the drink and all buddy mirrors in ONE atomic batch so a network
+        // failure can't leave a half-synced round. Doc ids are generated locally,
+        // so syncedIds (buddyUid -> buddyDocId, used for deletion sync) can be
+        // included in the same commit.
+        const batch = writeBatch(db);
+        const docRef = doc(getDrinksCollection(userId));
 
-        // 1. Save to buddies' collections
-        const syncedIds = {}; // buddyUid -> buddyDocId
-        if (buddies.length > 0) {
-            const syncPromises = buddies.map(async (buddy) => {
-                const bRef = await addDoc(getDrinksCollection(buddy.uid), {
-                    ...enrichedDrink,
-                    originalDrinkId: docRef.id
-                });
-                syncedIds[buddy.uid] = bRef.id;
-            });
-            await Promise.all(syncPromises);
+        const syncedIds = {};
+        buddies.forEach((buddy) => {
+            const buddyRef = doc(getDrinksCollection(buddy.uid));
+            syncedIds[buddy.uid] = buddyRef.id;
+            batch.set(buddyRef, { ...enrichedDrink, originalDrinkId: docRef.id });
+        });
 
-            // Update original doc with the buddy doc IDs for future deletion sync
-            await setDoc(docRef, { syncedIds }, { merge: true });
-        }
+        batch.set(docRef, buddies.length > 0 ? { ...enrichedDrink, syncedIds } : enrichedDrink);
+        await batch.commit();
 
         // 2. Background: Send notifications to friends NOT in the drinking session
         try {
@@ -153,15 +153,18 @@ export const deleteDrink = async (userId, drinkId) => {
         const drinkRef = doc(db, "users", userId, "drinks", drinkId);
         const drinkSnap = await getDoc(drinkRef);
 
+        // All cross-user sync writes go into one atomic batch together with the
+        // deletion itself, so a failure can't leave mirrors out of sync.
+        const batch = writeBatch(db);
+
         if (drinkSnap.exists()) {
             const data = drinkSnap.data();
 
-            // Case 1: Creator deletes -> Delete everywhere (Existing logic)
+            // Case 1: Creator deletes -> Delete everywhere
             if (data.creatorId === userId && data.syncedIds) {
-                const deletePromises = Object.entries(data.syncedIds).map(([buddyUid, buddyDocId]) =>
-                    deleteDoc(doc(db, "users", buddyUid, "drinks", buddyDocId))
+                Object.entries(data.syncedIds).forEach(([buddyUid, buddyDocId]) =>
+                    batch.delete(doc(db, "users", buddyUid, "drinks", buddyDocId))
                 );
-                await Promise.all(deletePromises);
             }
             // Case 2: Buddy deletes -> Remove self from everyone's logs
             else if (data.creatorId && data.creatorId !== userId && data.originalDrinkId) {
@@ -173,22 +176,22 @@ export const deleteDrink = async (userId, drinkId) => {
                     const updatedBuddies = (originalData.buddies || []).filter(b => b.uid !== userId);
 
                     // 1. Update Creator's doc
-                    await setDoc(originalDrinkRef, { buddies: updatedBuddies }, { merge: true });
+                    batch.set(originalDrinkRef, { buddies: updatedBuddies }, { merge: true });
 
                     // 2. Update other Buddies' docs
                     if (originalData.syncedIds) {
-                        const updatePromises = Object.entries(originalData.syncedIds)
+                        Object.entries(originalData.syncedIds)
                             .filter(([buddyUid]) => buddyUid !== userId) // Don't update self (about to delete)
-                            .map(([buddyUid, buddyDocId]) =>
-                                setDoc(doc(db, "users", buddyUid, "drinks", buddyDocId), { buddies: updatedBuddies }, { merge: true })
+                            .forEach(([buddyUid, buddyDocId]) =>
+                                batch.set(doc(db, "users", buddyUid, "drinks", buddyDocId), { buddies: updatedBuddies }, { merge: true })
                             );
-                        await Promise.all(updatePromises);
                     }
                 }
             }
         }
 
-        await deleteDoc(drinkRef);
+        batch.delete(drinkRef);
+        await batch.commit();
         return true;
     } catch (error) {
         console.error("Error deleting drink:", error);
@@ -372,8 +375,17 @@ export const subscribeToFriends = (userId, callback) => {
 
 export const saveFcmToken = async (userId, token) => {
     try {
-        const userRef = doc(db, "users", userId);
-        await setDoc(userRef, { fcmToken: token }, { merge: true });
+        // Stored in an owner-only subcollection: the main user doc is readable
+        // by all signed-in users, and push tokens must not be exposed.
+        const tokenRef = doc(db, "users", userId, "private", "push");
+        await setDoc(tokenRef, { fcmToken: token, updatedAt: Date.now() }, { merge: true });
+
+        // Scrub the legacy publicly-readable field if it's still around
+        try {
+            await setDoc(doc(db, "users", userId), { fcmToken: deleteField() }, { merge: true });
+        } catch {
+            // best-effort cleanup only
+        }
         return true;
     } catch (e) {
         console.error("Error saving FCM token:", e);

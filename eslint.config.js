@@ -26,9 +26,9 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
-  // Cloud Functions run on Node with CommonJS
+  // Cloud Functions and admin scripts run on Node with CommonJS
   {
-    files: ['functions/**/*.js'],
+    files: ['functions/**/*.js', 'scripts/**/*.js'],
     languageOptions: {
       globals: globals.node,
       sourceType: 'commonjs',

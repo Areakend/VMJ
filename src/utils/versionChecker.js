@@ -13,14 +13,16 @@ const CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
  * @param {string} version2 - e.g., "v0.3.2" or "0.3.2"
  * @returns {number} - 1 if v1 > v2, -1 if v1 < v2, 0 if equal
  */
-function compareVersions(version1, version2) {
-    // Remove 'v' prefix if present
+export function compareVersions(version1, version2) {
+    // Remove 'v' prefix if present; missing segments count as 0 (v1.0 == v1.0.0)
     const v1 = version1.replace(/^v/, '').split('.').map(Number);
     const v2 = version2.replace(/^v/, '').split('.').map(Number);
 
     for (let i = 0; i < 3; i++) {
-        if (v1[i] > v2[i]) return 1;
-        if (v1[i] < v2[i]) return -1;
+        const a = v1[i] || 0;
+        const b = v2[i] || 0;
+        if (a > b) return 1;
+        if (a < b) return -1;
     }
     return 0;
 }

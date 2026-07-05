@@ -10,9 +10,11 @@ import {
     orderBy,
     onSnapshot,
     arrayUnion,
+    arrayRemove,
     runTransaction,
     deleteDoc,
-    increment
+    increment,
+    writeBatch
 } from "firebase/firestore";
 
 // --- Event Management ---
@@ -33,6 +35,9 @@ export const createEvent = async (creatorUid, creatorUsername, title, date, isPu
                 status: 'active',
                 joinedAt: Date.now()
             }],
+            // Flat uid list kept in sync with `participants` — this is what
+            // queries and security rules use (array-contains / `in` checks).
+            participantIds: [creatorUid],
             status: 'open', // open | closed (global)
             totalShots: 0,
             totalVolume: 0,
@@ -49,24 +54,24 @@ export const createEvent = async (creatorUid, creatorUsername, title, date, isPu
 
 // Subscribe to events I am participating in
 export const subscribeToMyEvents = (userId, callback) => {
-    // NOTE: this listens to ALL events and filters client-side because participants
-    // are stored as an array of objects (not queryable with array-contains).
-    // TODO: store a flat `participantIds: [uid]` array on the event doc and query
-    // with where("participantIds", "array-contains", userId) to avoid reading
-    // every event in the collection.
-    const q = query(collection(db, "events"), orderBy("date", "desc"));
+    // Requires the composite index defined in firestore.indexes.json
+    // (participantIds array-contains + date desc).
+    // Legacy events created before participantIds existed won't match this
+    // query — run scripts/backfill-participant-ids.js once to migrate them.
+    const q = query(
+        collection(db, "events"),
+        where("participantIds", "array-contains", userId),
+        orderBy("date", "desc")
+    );
 
     return onSnapshot(q, (snapshot) => {
         const events = [];
         snapshot.forEach(doc => {
-            const data = doc.data();
-            // detailed check
-            const isParticipant = data.participants?.some(p => p.uid === userId);
-            if (isParticipant) {
-                events.push({ id: doc.id, ...data });
-            }
+            events.push({ id: doc.id, ...doc.data() });
         });
         callback(events);
+    }, (error) => {
+        console.error("Error listening to my events:", error);
     });
 };
 
@@ -90,7 +95,8 @@ export const subscribeToPublicEvents = (callback) => {
 
 // Helper: Haversine Distance in Meters
 export const getDistanceFromLatLonInM = (lat1, lon1, lat2, lon2) => {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity; // Return infinite if coords missing
+    // Explicit null/undefined checks: 0 is a valid coordinate (equator/prime meridian)
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return Infinity;
     var R = 6371; // Radius of the earth in km
     var dLat = deg2rad(lat2 - lat1);
     var dLon = deg2rad(lon2 - lon1);
@@ -111,22 +117,25 @@ function deg2rad(deg) {
 // This is called from the main App flow
 export const addEventDrink = async (eventId, userUid, username, drinkData) => {
     try {
-        // 1. Add to Event's Drink Subcollection
-        const eventDrinkyRef = collection(db, "events", eventId, "drinks");
-        await addDoc(eventDrinkyRef, {
+        // Drink doc + aggregate counters commit atomically so totals can't
+        // drift from the actual drink log on a partial failure.
+        const batch = writeBatch(db);
+
+        const drinkRef = doc(collection(db, "events", eventId, "drinks"));
+        batch.set(drinkRef, {
             ...drinkData,
             uid: userUid,
             username: username
         });
 
-        // 2. Update Event Aggregates (Atomic)
-        const eventRef = doc(db, "events", eventId);
-        await updateDoc(eventRef, {
+        batch.update(doc(db, "events", eventId), {
             totalShots: increment(1),
-            totalVolume: increment(drinkData.volume)
+            totalVolume: increment(drinkData.volume || 0)
         });
 
-        // Note: The caller is responsible for adding to the User's personal log 
+        await batch.commit();
+
+        // Note: The caller is responsible for adding to the User's personal log
         // to keep the architecture clean (Event logic vs Personal logic).
         return true;
     } catch (e) {
@@ -158,17 +167,29 @@ export const toggleEventStatus = async (eventId, userId, isActive) => {
     });
 };
 
-// Invite a friend to an event
+// Invite a friend to an event (also the self-join path for shared links).
+// Runs in a transaction so joining twice can't create duplicate participants
+// (arrayUnion would treat two objects with different joinedAt as distinct).
 export const inviteToEvent = async (eventId, friendUid, friendUsername) => {
     const eventRef = doc(db, "events", eventId);
-    await updateDoc(eventRef, {
-        participants: arrayUnion({
-            uid: friendUid,
-            username: friendUsername,
-            role: 'guest',
-            status: 'active', // Auto-active for simpler joining
-            joinedAt: Date.now()
-        })
+    await runTransaction(db, async (transaction) => {
+        const eventDoc = await transaction.get(eventRef);
+        if (!eventDoc.exists()) throw new Error("Event does not exist");
+
+        const data = eventDoc.data();
+        const participants = data.participants || [];
+        if (participants.some(p => p.uid === friendUid)) return; // already in
+
+        transaction.update(eventRef, {
+            participants: [...participants, {
+                uid: friendUid,
+                username: friendUsername,
+                role: 'guest',
+                status: 'active', // Auto-active for simpler joining
+                joinedAt: Date.now()
+            }],
+            participantIds: arrayUnion(friendUid)
+        });
     });
 };
 
@@ -183,8 +204,25 @@ export const removeParticipant = async (eventId, participantUid) => {
         const participants = data.participants || [];
         const updatedParticipants = participants.filter(p => p.uid !== participantUid);
 
-        transaction.update(eventRef, { participants: updatedParticipants });
+        transaction.update(eventRef, {
+            participants: updatedParticipants,
+            participantIds: arrayRemove(participantUid)
+        });
     });
+};
+
+// One-time self-heal for events created before `participantIds` existed:
+// rebuild the flat uid list from the participants array. Safe to call on
+// every event load — it no-ops when the field is already present.
+export const ensureParticipantIds = async (eventId, eventData) => {
+    if (eventData.participantIds || !eventData.participants?.length) return;
+    try {
+        await updateDoc(doc(db, "events", eventId), {
+            participantIds: eventData.participants.map(p => p.uid)
+        });
+    } catch (e) {
+        console.warn("Could not backfill participantIds for event", eventId, e);
+    }
 };
 
 // Remove a specific drink from an event
@@ -194,22 +232,29 @@ export const removeEventDrink = async (eventId, userUid, drinkTimestamp) => {
         const q = query(drinksRef, where("uid", "==", userUid), where("timestamp", "==", drinkTimestamp));
         const snap = await getDocs(q);
 
-        if (!snap.empty) {
-            const drinkDoc = snap.docs[0];
-            const drinkData = drinkDoc.data();
+        if (snap.empty) return;
 
-            // 1. Delete the doc
-            await deleteDoc(doc(db, "events", eventId, "drinks", drinkDoc.id));
+        // Delete every matching doc and decrement the aggregates in the same
+        // atomic batch so the counters stay consistent with the drink log.
+        const batch = writeBatch(db);
+        let removedShots = 0;
+        let removedVolume = 0;
 
-            // 2. Decrement aggregates
-            const eventRef = doc(db, "events", eventId);
-            await updateDoc(eventRef, {
-                totalShots: increment(-1),
-                totalVolume: increment(-(drinkData.volume || 2))
-            });
-        }
+        snap.docs.forEach((drinkDoc) => {
+            batch.delete(drinkDoc.ref);
+            removedShots += 1;
+            removedVolume += drinkDoc.data().volume || 2;
+        });
+
+        batch.update(doc(db, "events", eventId), {
+            totalShots: increment(-removedShots),
+            totalVolume: increment(-removedVolume)
+        });
+
+        await batch.commit();
     } catch (e) {
         console.error("Error removing event drink:", e);
+        throw e;
     }
 };
 

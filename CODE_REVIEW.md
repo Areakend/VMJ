@@ -77,59 +77,65 @@ events/{eventId}                 participants[], aggregates
 **Result: `npx eslint .` went from 55 errors to 0 (2 benign warnings left), all
 21 tests pass, `npm run build` succeeds.**
 
-## 3. Remaining findings (not changed — need product decisions)
+## 3. Remaining findings
+
+> **Status update (second pass, same branch):** items 1, 3, 4, 5 (partially),
+> 6, 7, 9, 10, 12, 13, 18, 19, 22 are now **implemented** — see
+> `DEPLOYMENT_NOTES.md` for the required deploy/migration ordering. Statuses
+> are marked inline below.
 
 ### High priority — security & privacy
 
-1. **Every event is readable by every signed-in user.**
-   `subscribeToMyEvents` subscribes to the *entire* `events` collection and
-   filters client-side. Besides the scale problem (every user downloads every
-   event ever created, forever), it means *private* events — titles, participant
-   lists, and via `events/{id}/drinks` the GPS positions of participants — are
-   visible to any authenticated user. Fix: add `participantIds: [uid]` to event
-   docs, query with `array-contains`, and restrict reads in rules to
-   participants or `isPublic == true`.
+1. ✅ **DONE — Every event was readable by every signed-in user.**
+   Events now carry a flat `participantIds` array; `subscribeToMyEvents` uses an
+   `array-contains` query (composite index in `firestore.indexes.json`), rules
+   restrict reads to participants or `isPublic == true`, event drinks follow the
+   parent event's visibility, joins are transactional (also fixing duplicate
+   participants), legacy events self-heal on open and
+   `scripts/backfill-participant-ids.js` migrates the rest. **Backfill must run
+   before the new rules are deployed.**
 
-2. **Anyone can join / mutate any event by ID.** `inviteToEvent` is also the
-   "join" path, and event ids are shared in URLs. Any signed-in user who obtains
-   an id can add themselves (or in principle any uid) to the participants array,
-   toggle statuses, or inflate `totalShots`. The 200 m proximity check for public
-   events is enforced only in the UI. Consider participant-scoped update rules
-   once `participantIds` exists, and validate aggregate increments (or move
-   aggregation to a Cloud Function trigger).
+2. **PARTIAL — Anyone can join / mutate any event by ID.** Joining by link is
+   an intentional product behavior, so event updates remain open to signed-in
+   users (creator identity is pinned, and private events are no longer
+   discoverable). Remaining exposure: a participant of an event (or anyone with
+   the id of a public event) can still toggle others' statuses or skew
+   aggregates. Full fix needs participant-scoped update rules with field-level
+   diffs, or moving aggregation into a Cloud Function trigger.
 
-3. **`users/{uid}` profiles are readable by all signed-in users, including
-   `fcmToken`.** Push tokens shouldn't be exposed to other users. Move
-   `fcmToken` into a private subcollection (e.g. `users/{uid}/private/push`)
-   readable only by the owner and the Cloud Functions (Admin SDK bypasses rules).
+3. ✅ **DONE — `fcmToken` was readable by all signed-in users.** Tokens now live
+   in owner-only `users/{uid}/private/push`; the client scrubs the legacy field
+   on next registration and the Cloud Functions read the new location with a
+   legacy fallback.
 
-4. **Account deletion leaves orphaned data.** `deleteAccount` removes only the
-   user doc and username reservation; all drinks, comments, reactions, friends
-   links, notifications and event participation remain. Under GDPR-style
-   expectations this is a data-retention problem. Recommended: a Cloud Function
-   (`functions.auth.user().onDelete` or callable) doing a recursive delete, plus
-   removing the user from friends' lists.
+4. ✅ **DONE — Account deletion left orphaned data.** New `onUserDeleted` Cloud
+   Function recursively deletes the user tree, username reservations,
+   friends-list entries, sent friend requests, drinks tagged into buddies' logs,
+   and event membership. The client now deletes the Auth user first, so a
+   `requires-recent-login` failure leaves the account intact instead of
+   half-deleted. Requires the collection-group index overrides in
+   `firestore.indexes.json`.
 
-5. **App Check is commented out** (`firebase.js`) and the CSP still allows
-   `unsafe-inline` + `unsafe-eval` in `script-src`. Both weaken the security
-   posture of a publicly-reachable Firebase project. Enable App Check with
-   ReCaptcha Enterprise, and try removing `unsafe-eval` (nothing in the current
-   bundle obviously needs it).
+5. ✅/⚠️ **PARTIAL — App Check & CSP.** App Check initializes automatically when
+   `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` is set (still needs the site key to be
+   created and the env var configured — see DEPLOYMENT_NOTES). `unsafe-eval`
+   removed from both CSPs and ReCaptcha hosts added; `unsafe-inline` remains in
+   `script-src` (needed by the PWA register snippet and Google auth) — hash-based
+   allowlisting would be the next step.
 
-6. **Debug keystore committed and used for released APKs.** The workflow builds
-   `assembleDebug` signed with the repo's `android/debug.keystore` and publishes
-   it as a GitHub release. Anyone can build an APK with the same signature
-   (update-hijack risk for sideloaded installs), and debug builds are
-   debuggable. Move to a release build signed with a keystore stored in GitHub
-   Actions secrets.
+6. ✅ **DONE — Debug keystore was used for released APKs.** `build.gradle` now
+   has a release `signingConfig` fed by env vars, and CI builds a signed
+   `assembleRelease` when the `ANDROID_*` keystore secrets exist (explicit debug
+   fallback otherwise). Existing sideloaded installs must reinstall once when
+   switching signatures.
 
 ### Medium priority — correctness & robustness
 
-7. **Buddy-tagged drinks & deletions are multi-write without transactions**
-   (`addDrink`/`deleteDrink` in `storage.js`). A network failure mid-way leaves
-   half-synced mirrors (drink exists for the buddy but not the creator, stale
-   `syncedIds`, etc.). Consider `writeBatch` for the mirror writes, and the same
-   for `addEventDrink`'s doc + aggregate pair.
+7. ✅ **DONE — Multi-doc writes were non-atomic.** `addDrink` writes the drink +
+   all buddy mirrors + `syncedIds` in a single `writeBatch`; `deleteDrink` does
+   the same for mirror deletion/buddy-list updates; `addEventDrink` and
+   `removeEventDrink` commit the drink doc and aggregate counters atomically
+   (and `removeEventDrink` now handles duplicate matches and surfaces errors).
 
 8. **Notification fan-out runs on the client** (`addDrink` writes one
    notification doc per friend). With N friends that's N writes from a phone on
@@ -137,26 +143,23 @@ events/{eventId}                 participants[], aggregates
    fan-out server-side (a function already exists for pushes, so the pattern is
    in place).
 
-9. **`getDistanceFromLatLonInM` treats latitude/longitude `0` as missing**
-   (`if (!lat1 || ...) return Infinity`). Use explicit `== null` checks.
+9. ✅ **DONE — `getDistanceFromLatLonInM` treated coordinate `0` as missing.**
+   Now uses explicit `== null` checks (with a regression test).
 
-10. **`removeEventDrink` swallows all errors** (`console.error` only) and
-    matches drinks by `(uid, timestamp)` — buddies' mirrored drinks share the
-    creator's timestamp, which is what makes this work, but it deletes only
-    `snap.docs[0]` if duplicates exist. Worth a comment or an id-based link.
+10. ✅ **DONE — `removeEventDrink` swallowed errors and only deleted the first
+    match.** Now deletes all matching docs, decrements aggregates by the actual
+    removed amounts in the same batch, and rethrows errors.
 
 11. **Nominatim custom `User-Agent` header doesn't work from browsers** (it's a
     forbidden header name) and the app hits Nominatim's public API directly at
     click-frequency. Fine at current scale; consider debouncing and honoring
     their usage policy if the user base grows.
 
-12. **`versionChecker.compareVersions` NaNs on tags like `v1.0`** (missing
-    patch): `v1[i] > v2[i]` with `undefined` is always false — harmless today
-    but easy to harden with `|| 0` defaults.
+12. ✅ **DONE — `compareVersions` hardened** with `|| 0` defaults for missing
+    segments, exported, and unit-tested.
 
-13. **Duplicate service-worker registration**: `index.html` manually registers
-    `/sw.js` while `vite-plugin-pwa` (`registerType: 'autoUpdate'`) also injects
-    registration. Keep one (prefer the plugin's).
+13. ✅ **DONE — Duplicate service-worker registration removed** from
+    `index.html`; `vite-plugin-pwa` owns registration.
 
 14. **Web deep-link handler runs only on mount** (`App.jsx` `handleWebLink`)
     and `confirm()`/`alert()` block the main thread; also the
@@ -184,25 +187,22 @@ events/{eventId}                 participants[], aggregates
     the repeated modal/card/button patterns into `index.css` classes (which
     already exist for some, e.g. `premium-button`) or a tiny styled system
     would cut component size by a third and make theme changes possible.
-18. **Duplicated logic**: `getLastNightVolume` exists in both `App.jsx` and
-    `Friends.jsx`; the share-link builders in `Friends.jsx`/`EventDetails.jsx`
-    are near-identical (incl. the hard-coded Netlify fallback domain — move to a
-    constant/env); the merged multi-user drink subscription pattern appears in
-    both `subscribeToFriendsDrinks` and the map effect in `App.jsx`.
-19. **README is still the Vite template** with two project lines pasted on top.
-    Worth replacing with setup steps (Firebase config, `firebase deploy`,
-    `npx cap sync`) — `APP_LINKS_SETUP.md` and `HOW_TO_SHARE.md` already show
-    the right spirit.
-20. **Test coverage is thin**: 21 tests over 3 files (validation, location,
-    Sidebar). The riskiest logic — `storage.js` mirroring/deletion sync,
-    `events.js` aggregates, feed merging — has none. These are pure functions
-    over the Firestore SDK and mock well.
-21. **CI installs with `npm install --legacy-peer-deps`** (and `.npmrc` pins
-    it). The underlying conflict is worth resolving so `npm ci` works — lockfile
-    installs are reproducible and faster in CI. Also `actions/checkout@v3` /
-    `setup-node@v3` are a major behind (v4/v5).
-22. **`AppMinimal.jsx`** is a leftover debug harness imported nowhere (kept, as
-    it may be intentional for debugging — delete if not).
+18. ✅ **DONE (mostly) — Duplicated logic**: `getLastNightVolume`/volume math now
+    live in `src/utils/stats.js`; share-sheet + base-URL logic in
+    `src/utils/share.js` (used by Friends & EventDetails). Still open: the
+    merged multi-user drink subscription pattern exists in both
+    `subscribeToFriendsDrinks` and the map effect in `App.jsx`.
+19. ✅ **DONE — README rewritten** with real setup/build/deploy instructions;
+    added `DEPLOYMENT_NOTES.md` for the migration ordering.
+20. **PARTIAL — Test coverage**: added unit tests for `stats`,
+    `compareVersions` and the haversine distance (30 tests total). The
+    Firestore-coupled logic (`storage.js` mirroring, event aggregates, feed
+    merging) still has none — needs `firebase/firestore` module mocks or the
+    emulator.
+21. **PARTIAL — CI**: actions bumped to v4. `npm install --legacy-peer-deps`
+    remains — the conflict comes from `@codetrix-studio/capacitor-google-auth`
+    (pre-release peer range); resolving it means switching Google auth plugins.
+22. ✅ **DONE — `AppMinimal.jsx` deleted** (debug harness imported nowhere).
 23. **Firebase web config committed** (`firebase.js`, and previously
     `test_reaction_sync.js`): this is *by design* public for Firebase web apps —
     not a leak — but it's another reason the rules + App Check items above are
