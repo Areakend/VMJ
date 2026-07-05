@@ -6,6 +6,7 @@ import UpdateModal from './components/UpdateModal';
 import { addDrink, subscribeToDrinks, deleteDrink, updateDrink } from './utils/storage'
 import { getCurrentLocation, getAddressFromCoords } from './utils/location'
 import { getTotalVolumeCl, getLastNightVolume } from './utils/stats'
+import { APP_NAME } from './config/branding'
 import { useAuth } from './contexts/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import Login from './components/Login'
@@ -155,7 +156,7 @@ function App() {
             await LocalNotifications.schedule({
               notifications: [
                 {
-                  title: "New Jäger! 🦌",
+                  title: "Crew update 🍻",
                   body: notif.message,
                   id: Math.floor(Math.random() * 10000),
                   schedule: { at: new Date(Date.now() + 100) },
@@ -274,7 +275,7 @@ function App() {
           const url = new URL(data.url);
           const eventIdForLink = url.searchParams.get('id');
           if (eventIdForLink) {
-            const confirmJoin = confirm("Join this Jäger event?");
+            const confirmJoin = confirm("Join this event?");
             if (confirmJoin) {
               const { inviteToEvent } = await import('./utils/events');
               await inviteToEvent(eventIdForLink, currentUser.uid, userData.username);
@@ -360,7 +361,7 @@ function App() {
       }
 
       if (effectiveEventId && effectiveEventId.length >= 10 && effectiveEventId.length <= 50) {
-        const confirmJoin = confirm("Join this Jäger event?");
+        const confirmJoin = confirm("Join this event?");
         if (confirmJoin) {
           const { inviteToEvent } = await import('./utils/events');
           await inviteToEvent(effectiveEventId, currentUser.uid, userData.username);
@@ -485,7 +486,7 @@ function App() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(drinks, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "jager_data.json");
+    downloadAnchorNode.setAttribute("download", "shot_data.json");
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
@@ -578,7 +579,7 @@ function App() {
   return (
     <>
       <header>
-        <h1>Jäger Tracker</h1>
+        <h1>{APP_NAME}</h1>
         <button
           onClick={() => setShowSidebar(true)}
           style={{
@@ -756,7 +757,7 @@ function App() {
                   border: 'none', borderRadius: '12px', fontWeight: 'bold'
                 }}
               >
-                Cheers! 🦌
+                Cheers! 🍻
               </button>
             </div>
           </div>

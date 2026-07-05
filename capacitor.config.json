@@ -1,6 +1,6 @@
 {
   "appId": "com.vitemonjager.app",
-  "appName": "vitemonjager",
+  "appName": "Shot Tracker",
   "webDir": "dist",
   "plugins": {
     "GoogleAuth": {

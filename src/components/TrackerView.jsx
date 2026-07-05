@@ -258,7 +258,7 @@ export default function TrackerView({
 
                 {drinks.length === 0 && (
                     <p style={{ color: '#666', textAlign: 'center', margin: '2rem 0', fontStyle: 'italic' }}>
-                        No drinks tracked yet.<br />Time to fix that?
+                        No drinks tracked yet.
                     </p>
                 )}
 

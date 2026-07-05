@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Trophy, Dices } from 'lucide-react';
 import confetti from 'canvas-confetti'; // We'll try to use this if available, or just CSS fallback
 
-export default function JagerRoulette({ participants, onClose }) {
+// Random crew-member picker. Deliberately neutral about WHAT the chosen one
+// does (next round of water, picks the music, tells a story...) — the app must
+// never instruct anyone to drink (loi Evin / store policies).
+export default function CrewRoulette({ participants, onClose }) {
     const [currentName, setCurrentName] = useState("READY?");
     const [isSpinning, setIsSpinning] = useState(false);
     const [winner, setWinner] = useState(null);
@@ -120,7 +123,7 @@ export default function JagerRoulette({ participants, onClose }) {
                         {winner}
                     </div>
                     <div style={{ fontSize: '2rem', marginBottom: '3rem' }}>
-                        🥃 Take a Shot!
+                        🎲 The Crew has spoken — your call!
                     </div>
 
                     <button

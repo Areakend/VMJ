@@ -79,15 +79,15 @@ export const addDrink = async (userId, drinkData, currentUsername = "A friend", 
 
             if (friendsToNotify.length > 0) {
                 const now = Date.now();
-                const { getRandomJagerMessage } = await import("./notifications");
-                const message = getRandomJagerMessage();
+                const { getRandomShotMessage } = await import("./notifications");
+                const message = getRandomShotMessage();
 
                 const batchPromises = friendsToNotify.map(friendId =>
                     addDoc(collection(db, "users", friendId, "notifications"), {
                         message: drinkData.comment
                             ? `${currentUsername}: ${message} ("${drinkData.comment}")`
                             : `${currentUsername}: ${message}`,
-                        drinkName: drinkData.name || "Jäger",
+                        drinkName: drinkData.name || "Shot",
                         timestamp: now,
                         fromUid: userId,
                         drinkId: docRef.id,

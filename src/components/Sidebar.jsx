@@ -1,6 +1,8 @@
-import { X, LogOut, CircleHelp, Info, FileText, Edit2, Trash2 } from 'lucide-react';
+import { X, LogOut, CircleHelp, Info, FileText, Edit2, HeartPulse } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_NAME, HELP_LINE_NAME, HELP_LINE_PHONE, HELP_LINE_URL } from '../config/branding';
+import HealthWarning from './HealthWarning';
 
 export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHelp, totalDrinks }) {
     const [showAbout, setShowAbout] = useState(false);
@@ -141,10 +143,27 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
 
                     {showAbout && (
                         <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', fontSize: '0.85rem', color: '#aaa', lineHeight: '1.5', border: '1px solid #333', marginBottom: '12px' }}>
-                            <p style={{ margin: 0, marginBottom: '8px' }}><strong style={{ color: 'white' }}>Jäger Tracker</strong></p>
-                            <p style={{ margin: 0 }}>This application is an independent fan project and has no affiliation with the beverage brand.</p>
+                            <p style={{ margin: 0, marginBottom: '8px' }}><strong style={{ color: 'white' }}>{APP_NAME}</strong></p>
+                            <p style={{ margin: 0, marginBottom: '8px' }}>An independent app to keep track of your consumption with friends. Not affiliated with any beverage brand.</p>
+                            <p style={{ margin: 0 }}>
+                                <a href="/privacy.html" target="_blank" rel="noreferrer" style={{ color: 'var(--jager-orange)' }}>
+                                    Politique de confidentialité / Privacy policy
+                                </a>
+                            </p>
                         </div>
                     )}
+
+                    {/* Responsible drinking resources (loi Évin) */}
+                    <div style={{ padding: '12px', background: 'rgba(53, 78, 65, 0.15)', borderRadius: '12px', fontSize: '0.8rem', color: '#aaa', lineHeight: '1.5', border: '1px solid rgba(53, 78, 65, 0.5)', marginBottom: '12px' }}>
+                        <p style={{ margin: 0, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px', color: '#ccc', fontWeight: 'bold' }}>
+                            <HeartPulse size={16} color="var(--jager-green)" /> Besoin d'aide ?
+                        </p>
+                        <p style={{ margin: 0 }}>
+                            {HELP_LINE_NAME} — <a href={`tel:${HELP_LINE_PHONE.replace(/ /g, '')}`} style={{ color: 'var(--jager-orange)' }}>{HELP_LINE_PHONE}</a> (anonyme et gratuit)
+                            {' · '}
+                            <a href={HELP_LINE_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--jager-orange)' }}>alcool-info-service.fr</a>
+                        </p>
+                    </div>
 
                     <button onClick={() => { setShowChangelog(!showChangelog); if (!showChangelog) setShowAbout(false); }} style={{ ...menuItemStyle, borderColor: showChangelog ? 'var(--jager-orange)' : 'transparent', marginBottom: showChangelog ? '4px' : '8px' }}>
                         <FileText size={20} color="var(--jager-orange)" /> Changelog
@@ -190,7 +209,9 @@ export default function Sidebar({ isOpen, onClose, userData, onLogout, onShowHel
                         </div>
                     )}
 
-                    <div style={{ textAlign: 'center', marginTop: '1rem', color: '#444', fontSize: '0.7rem' }}>
+                    <HealthWarning style={{ marginTop: '0.5rem', padding: '4px 0' }} />
+
+                    <div style={{ textAlign: 'center', marginTop: '0.5rem', color: '#444', fontSize: '0.7rem' }}>
                         v0.3.2 (User Management Update)
                     </div>
                 </div>

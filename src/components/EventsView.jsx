@@ -220,7 +220,7 @@ export default function EventsView({ currentUser, userData, onSelectEvent }) {
                             <button onClick={() => setShowHelp(false)} style={{ background: 'transparent', border: 'none', color: '#666' }}><X size={24} /></button>
                         </div>
                         <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                            <p><strong>🦌 Gathering the Herd:</strong> Events are temporary sessions to track shots with a group.</p>
+                            <p><strong>🍻 Gathering the Herd:</strong> Events are temporary sessions to track shots with a group.</p>
                             <p><strong>📍 Public Events:</strong> Located on the map. Join if you are nearby (200m)!</p>
                             <p><strong>🍻 Adding Drinks:</strong> Any drink added via the **Main Menu** is automatically added to **ANY open event** you are part of. Make sure to **close** any event you are not currently logged into. You can re-open it anytime!</p>
                             <p><strong>🔒 Status:</strong> Toggle "Open/Closed" to stop mistakenly adding shots to this event while you drink elsewhere.</p>

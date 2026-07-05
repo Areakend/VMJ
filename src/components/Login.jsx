@@ -1,8 +1,20 @@
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Beer } from 'lucide-react';
+import { APP_NAME, MIN_AGE, AGE_GATE_STORAGE_KEY } from '../config/branding';
+import HealthWarning from './HealthWarning';
 
 export default function Login() {
     const { login } = useAuth();
+    const [ageConfirmed, setAgeConfirmed] = useState(
+        localStorage.getItem(AGE_GATE_STORAGE_KEY) === 'true'
+    );
+
+    const handleAgeToggle = (e) => {
+        const checked = e.target.checked;
+        setAgeConfirmed(checked);
+        localStorage.setItem(AGE_GATE_STORAGE_KEY, checked ? 'true' : 'false');
+    };
 
     return (
         <div style={{
@@ -11,7 +23,8 @@ export default function Login() {
             alignItems: 'center',
             justifyContent: 'center',
             height: '100vh',
-            gap: '2rem'
+            gap: '1.5rem',
+            padding: '0 1.5rem'
         }}>
             <div style={{
                 background: 'linear-gradient(135deg, var(--jager-orange), #d99a1f)',
@@ -23,8 +36,8 @@ export default function Login() {
             </div>
 
             <div style={{ textAlign: 'center' }}>
-                <h1 style={{ marginBottom: '0.2rem', fontSize: '2.5rem' }}>Jäger Tracker</h1>
-                <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '2rem' }}>Track your shots across the crew.</p>
+                <h1 style={{ marginBottom: '0.2rem', fontSize: '2.5rem' }}>{APP_NAME}</h1>
+                <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Keep track of your drinks with your crew.</p>
                 <div style={{
                     fontSize: '0.65rem', color: '#444',
                     letterSpacing: '2px', fontWeight: 'bold'
@@ -33,8 +46,27 @@ export default function Login() {
                 </div>
             </div>
 
+            {/* Age gate — required for alcohol-related apps (stores + loi Évin) */}
+            <label style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '12px', padding: '12px 16px', cursor: 'pointer',
+                maxWidth: '340px', fontSize: '0.85rem', color: '#ccc'
+            }}>
+                <input
+                    type="checkbox"
+                    checked={ageConfirmed}
+                    onChange={handleAgeToggle}
+                    style={{ transform: 'scale(1.2)', accentColor: 'var(--jager-orange)' }}
+                />
+                <span>
+                    Je certifie avoir {MIN_AGE} ans ou plus / I confirm I am {MIN_AGE} or older
+                </span>
+            </label>
+
             <button
                 onClick={login}
+                disabled={!ageConfirmed}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -47,10 +79,12 @@ export default function Login() {
                     fontSize: '0.95rem',
                     boxShadow: '0 4px 20px rgba(255,255,255,0.1)',
                     border: 'none',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s, box-shadow 0.2s'
+                    cursor: ageConfirmed ? 'pointer' : 'not-allowed',
+                    opacity: ageConfirmed ? 1 : 0.4,
+                    transition: 'transform 0.2s, box-shadow 0.2s, opacity 0.2s'
                 }}
                 onMouseEnter={(e) => {
+                    if (!ageConfirmed) return;
                     e.currentTarget.style.transform = 'translateY(-2px)';
                     e.currentTarget.style.boxShadow = '0 6px 25px rgba(255,255,255,0.15)';
                 }}
@@ -67,6 +101,8 @@ export default function Login() {
                 </svg>
                 Sign in with Google
             </button>
+
+            <HealthWarning style={{ position: 'absolute', bottom: '16px', left: 0, right: 0 }} />
         </div>
     );
 }

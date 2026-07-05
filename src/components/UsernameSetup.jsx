@@ -73,7 +73,7 @@ export default function UsernameSetup() {
                             className="premium-input"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            placeholder="e.g. MasterJager"
+                            placeholder="e.g. NightOwl"
                             style={{ width: '100%' }}
                             required
                             autoFocus
@@ -90,7 +90,7 @@ export default function UsernameSetup() {
                         {loading ? 'Saving...' : (
                             <>
                                 <Beer size={20} />
-                                Start Drinking
+                                Cheers!
                             </>
                         )}
                     </button>

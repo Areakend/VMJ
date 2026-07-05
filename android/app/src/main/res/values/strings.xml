@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">vitemonjager</string>
-    <string name="title_activity_main">vitemonjager</string>
+    <string name="app_name">Shot Tracker</string>
+    <string name="title_activity_main">Shot Tracker</string>
     <string name="package_name">com.vitemonjager.app</string>
     <string name="custom_url_scheme">com.vitemonjager.app</string>
     <string name="server_client_id">626354913346-uvhlkjjiq2g1pjtss246qkhlrefcmskr.apps.googleusercontent.com</string>

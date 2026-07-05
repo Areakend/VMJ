@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Jager Tracker',
-        short_name: 'JagerTracker',
-        description: 'Track your Jager shots',
+        name: 'Shot Tracker',
+        short_name: 'ShotTracker',
+        description: 'Keep track of your drinks with your crew',
         theme_color: '#0a0a0a',
         icons: [
           {

@@ -3,9 +3,10 @@ import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, addEvent
 import { format } from 'date-fns';
 import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X, LogIn } from 'lucide-react';
 import { shareLink, getShareBaseUrl } from '../utils/share';
+import { APP_NAME } from '../config/branding';
 import { db } from '../firebase';
 import { onSnapshot, doc, collection, query, orderBy } from 'firebase/firestore';
-import JagerRoulette from './JagerRoulette';
+import CrewRoulette from './CrewRoulette';
 
 export default function EventDetails({ eventId, currentUser, userData, friends, onBack }) {
     const [event, setEvent] = useState(null);
@@ -83,8 +84,8 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
     };
 
     const handleShareEvent = () => shareLink({
-        title: `Join our Jäger Event: ${event.title}`,
-        text: `Click to join "${event.title}" on Jäger Tracker!`,
+        title: `Join our event: ${event.title}`,
+        text: `Click to join "${event.title}" on ${APP_NAME}!`,
         link: `${getShareBaseUrl()}/event?id=${eventId}`,
         nativeUrl: `vitemonjager://event?id=${eventId}`,
         dialogTitle: 'Share Event',
@@ -105,7 +106,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
             const shot = {
                 timestamp: Date.now(),
                 volume: 2,
-                comment: "Event Shot! 🦌",
+                comment: "Event Shot! 🍻",
                 eventIds: [eventId]
             };
             await addEventDrink(eventId, currentUser.uid, userData.username, shot);
@@ -298,7 +299,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
             </div>
 
             {showRoulette && (
-                <JagerRoulette
+                <CrewRoulette
                     participants={event.participants || []}
                     onClose={() => setShowRoulette(false)}
                 />
