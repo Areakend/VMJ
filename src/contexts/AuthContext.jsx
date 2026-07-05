@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, googleProvider, db } from "../firebase";
-import { signInWithRedirect, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, getRedirectResult, signInWithPopup, deleteUser } from "firebase/auth";
-import { doc, onSnapshot, runTransaction, getDoc, deleteDoc, collection } from "firebase/firestore";
+import { signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, getRedirectResult, signInWithPopup, deleteUser } from "firebase/auth";
+import { doc, onSnapshot, runTransaction, getDoc, deleteDoc } from "firebase/firestore";
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components -- standard context hook pattern
 export function useAuth() {
     return useContext(AuthContext);
 }
@@ -307,7 +308,6 @@ export function AuthProvider({ children }) {
 
                     <button
                         onClick={() => {
-                            clearTimeout(timeout);
                             logout().then(() => window.location.reload());
                         }}
                         style={{

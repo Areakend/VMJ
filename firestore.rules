@@ -57,8 +57,13 @@ service cloud.firestore {
 
       match /notifications/{notifId} {
         allow read, delete: if isOwner(uid);
-        // Allow others to send notifications (social tag/invite)
-        allow create: if isSignedIn();
+        // Social notifications (drink tags, comments): the sender must identify
+        // themselves truthfully (fromUid) so recipients can't be spoofed/spammed
+        // by arbitrary accounts pretending to be someone else.
+        allow create: if isSignedIn()
+                      && request.resource.data.fromUid == request.auth.uid
+                      && request.resource.data.message is string
+                      && request.resource.data.message.size() <= 500;
       }
 
       match /friendRequests/{senderId} {
@@ -82,7 +87,49 @@ service cloud.firestore {
     // Global username registry to enforce uniqueness
     match /usernames/{username} {
       allow read: if true;
-      allow write: if isSignedIn() && (resource == null || resource.data.uid == request.auth.uid);
+      // A user may only reserve a username FOR THEMSELVES (uid must match),
+      // and may only update/release reservations they own.
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && isValidUsername(username);
+      allow update: if isSignedIn()
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Events (group drinking sessions with live leaderboard)
+    // NOTE: the app's sharing model intentionally lets any signed-in user join an
+    // event via a shared link, so participant updates are open to signed-in users.
+    // Tightening this further (e.g. participant-only writes) requires storing a
+    // flat participantIds array — see TODO in src/utils/events.js.
+    match /events/{eventId} {
+      function isEventCreator() {
+        return isSignedIn() && resource.data.creator.uid == request.auth.uid;
+      }
+
+      allow read: if isSignedIn();
+      // Creator info must match the authenticated user on create
+      allow create: if isSignedIn()
+                    && request.resource.data.creator.uid == request.auth.uid
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 100;
+      // Joining, inviting, status toggles and aggregate counters all mutate the
+      // event doc; the creator identity must never change.
+      allow update: if isSignedIn()
+                    && request.resource.data.creator.uid == resource.data.creator.uid;
+      allow delete: if isEventCreator();
+
+      match /drinks/{drinkId} {
+        allow read: if isSignedIn();
+        // A user logs event drinks under their own uid, and the "tag a buddy"
+        // flow also writes/deletes entries under the buddy's uid, so create and
+        // delete stay open to signed-in users for now.
+        // TODO: store the tagger's uid on event drink docs so delete can be
+        // restricted to (owner || tagger || event creator).
+        allow create, delete: if isSignedIn();
+      }
     }
   }
 }

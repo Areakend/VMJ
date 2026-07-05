@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, removeEventDrink, addEventDrink, removeParticipant } from '../utils/events';
+import { inviteToEvent, toggleEventStatus, deleteEvent, setEventStatus, addEventDrink, removeParticipant } from '../utils/events';
 import { format } from 'date-fns';
 import { Users, UserPlus, Trophy, Beer, ArrowLeft, Lock, Unlock, CheckCircle, Dices, Share2, Plus, Trash2, X, LogIn } from 'lucide-react';
 import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import { db } from '../firebase';
-import { onSnapshot, doc, collection, query, orderBy, where } from 'firebase/firestore';
+import { onSnapshot, doc, collection, query, orderBy } from 'firebase/firestore';
 import JagerRoulette from './JagerRoulette';
 
 export default function EventDetails({ eventId, currentUser, userData, friends, onBack }) {
@@ -104,7 +105,7 @@ export default function EventDetails({ eventId, currentUser, userData, friends, 
             } else {
                 throw new Error('Web Share not supported');
             }
-        } catch (e) {
+        } catch {
             try {
                 await navigator.clipboard.writeText(`${text} ${link}`);
                 alert("Link copied to clipboard! 🦌");

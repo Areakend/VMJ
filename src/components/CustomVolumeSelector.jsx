@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { X, ChevronUp, ChevronDown, Check } from 'lucide-react';
 
 export default function CustomVolumeSelector({ volume, onSelect, onClose }) {

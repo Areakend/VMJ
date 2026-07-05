@@ -3,8 +3,6 @@ import {
     collection,
     doc,
     addDoc,
-    setDoc,
-    getDoc,
     getDocs,
     updateDoc,
     query,
@@ -12,7 +10,6 @@ import {
     orderBy,
     onSnapshot,
     arrayUnion,
-    arrayRemove,
     runTransaction,
     deleteDoc,
     increment
@@ -38,7 +35,6 @@ export const createEvent = async (creatorUid, creatorUsername, title, date, isPu
             }],
             status: 'open', // open | closed (global)
             totalShots: 0,
-            totalShots: 0,
             totalVolume: 0,
             isPublic: isPublic || false,
             location: location // { latitude, longitude, address }
@@ -53,25 +49,11 @@ export const createEvent = async (creatorUid, creatorUsername, title, date, isPu
 
 // Subscribe to events I am participating in
 export const subscribeToMyEvents = (userId, callback) => {
-    // Firestore doesn't support array-contains-any for objects easily without specific structure
-    // We'll iterate client side or filter if we change structure. 
-    // For now, let's fetch all events and filter (not scalable but works for MVP)
-    // OR: Store 'participantIds' array separately on the event doc for query.
-
-    // Better Approach: Query where 'participantIds' array-contains userId
-    // I need to ensure createEvent adds this field.
-
-    // Re-doing createEvent simplified model for query:
-    // We will assume 'participantIds' exists.
-
-    const eventsRef = collection(db, "events");
-    // const q = query(eventsRef, where("participantIds", "array-contains", userId), orderBy("date", "desc"));
-    // Since we didn't add participantIds yet, let's use a simpler query for now 
-    // or just listen to all events (dangerous for scale).
-
-    // Let's rely on a 'participants' map or array check.
-    // Actually, let's just create 'participantIds' in createEvent going forward.
-
+    // NOTE: this listens to ALL events and filters client-side because participants
+    // are stored as an array of objects (not queryable with array-contains).
+    // TODO: store a flat `participantIds: [uid]` array on the event doc and query
+    // with where("participantIds", "array-contains", userId) to avoid reading
+    // every event in the collection.
     const q = query(collection(db, "events"), orderBy("date", "desc"));
 
     return onSnapshot(q, (snapshot) => {

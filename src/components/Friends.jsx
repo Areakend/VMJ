@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Search, X, Check, Trash2, Share2, Beer, ChevronRight } from 'lucide-react';
 import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
-import { format } from 'date-fns';
 
 function FriendDetail({ friend, onClose }) {
     const [drinks, setDrinks] = useState([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = subscribeToDrinks(friend.uid, (data) => {
             setDrinks(data);
-            setLoading(false);
         });
         return () => unsubscribe();
     }, [friend.uid]);
@@ -230,7 +228,7 @@ export default function Friends() {
                                 } else {
                                     throw new Error('Web Share not supported');
                                 }
-                            } catch (e) {
+                            } catch {
                                 try {
                                     await navigator.clipboard.writeText(`${text} ${link}`);
                                     alert("Profile link copied to clipboard! 🦌");

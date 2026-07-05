@@ -19,10 +19,19 @@ export default function UpdateModal({ release, onClose }) {
         }, 1000);
     };
 
+    // Escape HTML entities so release notes fetched from the GitHub API can never
+    // inject markup/scripts (this string ends up in dangerouslySetInnerHTML)
+    const escapeHtml = (str) => str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     // Parse release notes (simple markdown to HTML)
     const formatReleaseNotes = (body) => {
         if (!body) return '';
-        return body
+        return escapeHtml(body)
             .split('\n')
             .map(line => {
                 if (line.startsWith('## ')) {

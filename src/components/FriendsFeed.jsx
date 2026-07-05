@@ -13,7 +13,7 @@ import CommentSection from './CommentSection';
 
 const REACTION_EMOJIS = ['🍻', '🎉', '🔥', '😵'];
 
-function DrinkCard({ drink, currentUser, userData, targetDrinkId, friends }) {
+function DrinkCard({ drink, currentUser, userData, targetDrinkId }) {
 
     const [reactions, setReactions] = useState([]);
     const [showReactors, setShowReactors] = useState(false);
@@ -191,12 +191,11 @@ export default function FriendsFeed({ targetDrinkId }) {
     const [friends, setFriends] = useState([]);
     const [drinks, setDrinks] = useState([]);
     const [friendsLoading, setFriendsLoading] = useState(true);
-    const [drinksLoading, setDrinksLoading] = useState(false);
+    const [drinksLoading, setDrinksLoading] = useState(true);
 
     // Subscribe to friends
     useEffect(() => {
         if (!currentUser) return;
-        setFriendsLoading(true);
         const unsub = subscribeToFriends(currentUser.uid, (data) => {
             setFriends(data);
             setFriendsLoading(false);
@@ -204,14 +203,10 @@ export default function FriendsFeed({ targetDrinkId }) {
         return unsub;
     }, [currentUser]);
 
-    // Subscribe to friends' drinks
+    // Subscribe to friends' drinks (with no friends the subscription
+    // immediately reports an empty feed)
     useEffect(() => {
-        if (!currentUser || friends.length === 0) {
-            setDrinks([]);
-            return;
-        }
-
-        setDrinksLoading(true);
+        if (!currentUser) return;
         const unsub = subscribeToFriendsDrinks(currentUser.uid, friends, (allDrinks) => {
             setDrinks(allDrinks);
             setDrinksLoading(false);

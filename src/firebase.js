@@ -1,12 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 import {
-    getFirestore,
     initializeFirestore,
     persistentLocalCache,
     persistentMultipleTabManager
 } from "firebase/firestore";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 
 // TODO: Replace with your Firebase configuration
 // Get this from: https://console.firebase.google.com
@@ -40,6 +38,7 @@ export const db = initializeFirestore(app, {
 // To prevent unauthorized traffic and DDoS, initialize App Check.
 // NOTE: You need to get a ReCaptcha Enterprise Site Key from the Firebase Console.
 /*
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 initializeAppCheck(app, {
     provider: new ReCaptchaEnterpriseProvider('YOUR_SITE_KEY_HERE'),
     isTokenAutoRefreshEnabled: true

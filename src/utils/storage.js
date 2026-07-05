@@ -16,10 +16,6 @@ import {
     deleteField
 } from "firebase/firestore";
 
-// ... (lines 16-439 omitted for brevity in replacement, but I must match exact target content for the tool)
-// Actually, I can't easily jump lines in one replacement if they are far apart.
-// I'll do two replacements. One for import, one for function.
-
 // --- Validation Helpers ---
 export const validateUsername = (username) => {
     if (!username) return "Username is required";
@@ -262,7 +258,6 @@ export const sendFriendRequest = async (currentUserId, currentUsername, targetUs
 
     try {
         let targetUid = null;
-        let finalTargetUsername = targetUsername;
 
         const usernameSnap = await getDoc(usernameRef);
         if (usernameSnap.exists()) {
@@ -273,7 +268,6 @@ export const sendFriendRequest = async (currentUserId, currentUsername, targetUs
             const querySnap = await getDocs(q);
             if (!querySnap.empty) {
                 targetUid = querySnap.docs[0].id;
-                finalTargetUsername = querySnap.docs[0].data().username;
             }
         }
 
@@ -310,14 +304,11 @@ export const subscribeToRequests = (userId, callback) => {
 // Accept friend request
 export const acceptFriendRequest = async (currentUserId, currentUsername, request) => {
     const senderRef = doc(db, "users", request.fromUid);
-    const currentUserRef = doc(db, "users", currentUserId);
 
     try {
         await runTransaction(db, async (transaction) => {
             const senderSnap = await transaction.get(senderRef);
             if (!senderSnap.exists()) throw new Error("Sender no longer exists");
-
-            const senderData = senderSnap.data();
 
             // 1. Add sender to my friends
             transaction.set(doc(db, "users", currentUserId, "friends", request.fromUid), {

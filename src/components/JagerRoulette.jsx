@@ -6,7 +6,6 @@ export default function JagerRoulette({ participants, onClose }) {
     const [currentName, setCurrentName] = useState("READY?");
     const [isSpinning, setIsSpinning] = useState(false);
     const [winner, setWinner] = useState(null);
-    const [speed, setSpeed] = useState(50); // Initial delay in ms
 
     const timeoutRef = useRef(null);
 
@@ -14,7 +13,6 @@ export default function JagerRoulette({ participants, onClose }) {
         if (isSpinning) return;
         setIsSpinning(true);
         setWinner(null);
-        setSpeed(50);
 
         // Filter valid participants (exclude guests if needed, or just use all names)
         const names = participants.map(p => p.username);
