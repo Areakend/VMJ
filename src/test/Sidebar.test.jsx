@@ -68,7 +68,7 @@ describe('Sidebar component', () => {
 
         fireEvent.click(screen.getByText('About'));
 
-        expect(screen.getByText(/independent fan project/i)).toBeInTheDocument();
+        expect(screen.getByText(/independent app to keep track/i)).toBeInTheDocument();
     });
 
 });

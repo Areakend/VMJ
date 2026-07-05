@@ -21,7 +21,7 @@ export const getShareBaseUrl = () =>
  * @param {string} [opts.dialogTitle] Native share dialog title
  * @param {string} [opts.copiedMessage] Alert text after clipboard fallback
  */
-export async function shareLink({ title, text, link, nativeUrl, dialogTitle = 'Share', copiedMessage = 'Link copied to clipboard! 🦌' }) {
+export async function shareLink({ title, text, link, nativeUrl, dialogTitle = 'Share', copiedMessage = 'Link copied to clipboard! 🍻' }) {
     try {
         if (Capacitor.isNativePlatform()) {
             await Share.share({

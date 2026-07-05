@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Politique de confidentialité — Shot Tracker</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; background: #121214; color: #ddd; max-width: 720px; margin: 0 auto; padding: 2rem 1.2rem 4rem; line-height: 1.65; }
+    h1 { color: #fbb124; font-size: 1.6rem; }
+    h2 { color: #fbb124; font-size: 1.15rem; margin-top: 2rem; }
+    a { color: #fbb124; }
+    .warning { border: 1px solid #444; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; color: #aaa; margin-top: 2.5rem; text-align: center; }
+    .en { color: #999; font-size: 0.95rem; }
+    hr { border: none; border-top: 1px solid #333; margin: 3rem 0 2rem; }
+  </style>
+</head>
+<body>
+  <h1>Politique de confidentialité</h1>
+  <p><em>Dernière mise à jour : 5 juillet 2026 — application « Shot Tracker »</em></p>
+
+  <h2>1. Responsable du traitement</h2>
+  <p>L'application est éditée à titre personnel et non commercial. Contact pour toute question relative aux données :
+  <a href="https://github.com/Areakend/VMJ/issues">github.com/Areakend/VMJ/issues</a>.
+  <!-- TODO: remplacer par une adresse e-mail de contact dédiée avant publication sur les stores --></p>
+
+  <h2>2. Données collectées</h2>
+  <ul>
+    <li><strong>Compte</strong> : identifiant, nom et adresse e-mail fournis par la connexion Google (Firebase Authentication), et le pseudonyme que vous choisissez.</li>
+    <li><strong>Consommations</strong> : les boissons que vous enregistrez volontairement (date/heure, volume, commentaire éventuel) et, si vous l'autorisez, la position GPS du lieu d'enregistrement.</li>
+    <li><strong>Social</strong> : vos liens d'amitié dans l'application, vos réactions et commentaires, votre participation aux événements.</li>
+    <li><strong>Technique</strong> : jeton de notifications push (FCM) si vous activez les notifications.</li>
+  </ul>
+  <p>Aucune donnée n'est collectée à des fins publicitaires. Aucune donnée n'est vendue ni transmise à des tiers à des fins commerciales.</p>
+
+  <h2>3. Finalités et base légale</h2>
+  <p>Les données servent exclusivement au fonctionnement de l'application : suivi personnel de consommation, partage avec les amis que <em>vous</em> choisissez, notifications sociales. Base légale : votre consentement et l'exécution du service que vous demandez (art. 6 RGPD).</p>
+
+  <h2>4. Localisation</h2>
+  <p>La position GPS n'est enregistrée qu'au moment où vous ajoutez une boisson, avec votre autorisation système. Elle est visible de vos amis et des participants des événements auxquels vous participez. Vous pouvez refuser l'autorisation : l'application fonctionne sans localisation.</p>
+
+  <h2>5. Hébergement et sous-traitants</h2>
+  <p>Les données sont hébergées par <strong>Google Firebase</strong> (Google Ireland Ltd / Google LLC — Firestore, Authentication, Cloud Functions, Cloud Messaging). Des transferts hors UE peuvent avoir lieu dans le cadre des clauses contractuelles types de Google.
+  Le site web est servi par Netlify. Le géocodage inverse utilise le service public Nominatim (OpenStreetMap) : seules les coordonnées du point enregistré lui sont transmises, jamais votre identité.</p>
+
+  <h2>6. Durée de conservation</h2>
+  <p>Les données sont conservées tant que votre compte existe. La <strong>suppression du compte</strong> (menu Profil → « Delete Account ») efface l'intégralité de vos données : profil, consommations, commentaires, réactions, liens d'amitié, pseudonyme et participation aux événements.</p>
+
+  <h2>7. Vos droits</h2>
+  <p>Vous disposez des droits d'accès, de rectification, d'effacement, de limitation et de portabilité (RGPD). L'export de vos données est disponible dans l'application (bouton « Export »), et la suppression est immédiate via « Delete Account ». Pour toute autre demande, utilisez le contact du §1. Vous pouvez également saisir la CNIL (<a href="https://www.cnil.fr">cnil.fr</a>).</p>
+
+  <h2>8. Âge minimum</h2>
+  <p>L'application concerne le suivi de boissons alcoolisées : elle est réservée aux personnes de <strong>18 ans et plus</strong>.</p>
+
+  <hr>
+
+  <p class="en"><strong>English summary.</strong> Shot Tracker stores, in Google Firebase, the account data from your Google sign-in, the drinks you voluntarily log (time, volume, optional comment and GPS position), your in-app friendships, reactions, comments and event participation, plus a push token if you enable notifications. Data is used solely to run the service, is never sold or used for advertising, and is fully deleted when you delete your account in the app (Profile → Delete Account). Data export is available in-app. You must be 18 or older to use this app. Contact: <a href="https://github.com/Areakend/VMJ/issues">github.com/Areakend/VMJ/issues</a>.</p>
+
+  <div class="warning">
+    L'abus d'alcool est dangereux pour la santé. À consommer avec modération.<br>
+    Alcool Info Service — 0 980 980 930 — <a href="https://www.alcool-info-service.fr">alcool-info-service.fr</a>
+  </div>
+</body>
+</html>

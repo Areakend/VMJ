@@ -5,8 +5,9 @@ import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { getDistanceFromLatLonInM } from '../utils/events';
 
-// Robust SVG Icon as Data URL - High Contrast Version
-const stagSvg = `
+// Neutral shot-glass pin (deliberately generic — no brand imagery, see
+// src/config/branding.js for the trademark constraints)
+const shotGlassSvg = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -16,25 +17,18 @@ const stagSvg = `
   <g filter="url(#shadow)">
     <!-- Background Pin -->
     <circle cx="60" cy="60" r="54" fill="#1a1a1a" stroke="#fbbf24" stroke-width="4" />
-    
-    <!-- Stag Head (Centered and Scaled) -->
-    <g transform="translate(10, 10)">
-        <path d="M50 80 L42 60 Q42 52 50 52 Q58 52 58 60 L50 80" fill="#fbbf24" stroke="none" />
-        <path d="M44 58 Q30 48 22 58" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
-        <path d="M42 54 Q25 35 15 45" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
-        <path d="M40 50 Q20 25 10 35" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
-        <path d="M56 58 Q70 48 78 58" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
-        <path d="M58 54 Q75 35 85 45" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
-        <path d="M60 50 Q80 25 90 35" stroke="#fbbf24" fill="none" stroke-width="5" stroke-linecap="round" />
-        <path d="M50 42 V20 M42 30 H58" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Shot glass -->
+    <g stroke="#fbbf24" stroke-width="5" stroke-linecap="round" fill="none">
+      <path d="M42 38 L48 86 L72 86 L78 38 Z" />
+      <path d="M45 60 L75 60" />
     </g>
+    <path d="M46.5 62 L48.5 84 L71.5 84 L73.5 62 Z" fill="#fbbf24" opacity="0.85" />
   </g>
 </svg>`;
 
-const iconUrl = `data:image/svg+xml;base64,${btoa(stagSvg)}`;
-
-const stagIcon = L.icon({
-    iconUrl: iconUrl,
+const drinkIcon = L.icon({
+    iconUrl: `data:image/svg+xml;base64,${btoa(shotGlassSvg)}`,
     iconSize: [50, 50],
     iconAnchor: [25, 25],
     popupAnchor: [0, -25]
@@ -128,7 +122,7 @@ export default function DrinkMap({ drinks, userLocation, publicEvents = [], show
                         <Marker
                             key={drink.id}
                             position={[drink.latitude, drink.longitude]}
-                            icon={stagIcon}
+                            icon={drinkIcon}
                         >
                             <Popup>
                                 <div style={{ textAlign: 'center' }}>

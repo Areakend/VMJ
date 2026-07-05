@@ -3,6 +3,7 @@ import { UserPlus, Search, X, Check, Trash2, Share2, ChevronRight } from 'lucide
 import { sendFriendRequest, subscribeToFriends, subscribeToRequests, acceptFriendRequest, declineFriendRequest, removeFriend, subscribeToDrinks } from '../utils/storage';
 import { getTotalVolumeCl, getLastNightVolume } from '../utils/stats';
 import { shareLink, getShareBaseUrl } from '../utils/share';
+import { APP_NAME } from '../config/branding';
 import { useAuth } from '../contexts/AuthContext';
 
 function FriendDetail({ friend, onClose }) {
@@ -184,12 +185,12 @@ export default function Friends() {
                     <h3 style={{ color: 'var(--jager-orange)', margin: 0 }}>Find a Drinking Buddy</h3>
                     <button
                         onClick={() => shareLink({
-                            title: 'Join my Jäger Crew!',
-                            text: `Add me on Jäger Tracker: ${userData.username}`,
+                            title: 'Join my Crew!',
+                            text: `Add me on ${APP_NAME}: ${userData.username}`,
                             link: `${getShareBaseUrl()}/add-friend?username=${userData.username}`,
                             nativeUrl: `vitemonjager://add-friend?username=${userData.username}`,
                             dialogTitle: 'Share your profile',
-                            copiedMessage: 'Profile link copied to clipboard! 🦌'
+                            copiedMessage: 'Profile link copied to clipboard! 🍻'
                         })}
                         style={{
                             background: 'transparent',

@@ -1,8 +1,8 @@
-# Jäger Tracker 🦌🥃
+# Shot Tracker 🥃
 
-**Current Version: v0.3.2** · [Changelog](CHANGELOG.md) · [Code Review](CODE_REVIEW.md)
+**Current Version: v0.3.2** · [Changelog](CHANGELOG.md) · [Code Review](CODE_REVIEW.md) · [Publication stores](PUBLISHING.md)
 
-Jäger Tracker is a social drink-tracking app: log shots (with GPS), tag your
+Shot Tracker (working title) is a social drink-tracking app: log shots (with GPS), tag your
 crew, react and comment on friends' drinks, and run group events with a live
 leaderboard and map.
 

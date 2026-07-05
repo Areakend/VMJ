@@ -53,7 +53,7 @@ export const getAddressFromCoords = async (lat, lng) => {
         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
             headers: {
                 'Accept-Language': 'en',
-                'User-Agent': 'JagerTrackerApp'
+                'User-Agent': 'ShotTrackerApp'
             }
         });
         const data = await response.json();
@@ -70,7 +70,7 @@ export const getCoordsFromAddress = async (address) => {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
             headers: {
                 'Accept-Language': 'en',
-                'User-Agent': 'JagerTrackerApp'
+                'User-Agent': 'ShotTrackerApp'
             }
         });
         const data = await response.json();

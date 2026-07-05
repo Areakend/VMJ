@@ -1,5 +1,5 @@
 /**
- * Firebase Cloud Functions for Jäger Tracker:
+ * Firebase Cloud Functions for the app:
  * - push notifications to the Crew (new drinks / friend requests)
  * - full data cleanup when a user deletes their account
  */
@@ -63,12 +63,12 @@ exports.onNotificationCreated = onDocumentCreated("users/{uid}/notifications/{no
 
         const message = {
             notification: {
-                title: "New Jäger! 🦌",
+                title: "Crew update 🍻",
                 body: data.message,
             },
             data: {
                 click_action: "FLUTTER_NOTIFICATION_CLICK", // Standard for some plugins
-                drinkName: data.drinkName || "Jäger",
+                drinkName: data.drinkName || "Shot",
                 drinkId: data.drinkId || "",
                 drinkOwnerId: data.drinkOwnerId || ""
             },
@@ -101,7 +101,7 @@ exports.onFriendRequestCreated = onDocumentCreated("users/{uid}/friendRequests/{
         const message = {
             notification: {
                 title: "New Crew Request! 🍻",
-                body: `${data.fromUsername} wants to join your drinking crew!`,
+                body: `${data.fromUsername} wants to join your crew!`,
             },
             data: {
                 click_action: "FLUTTER_NOTIFICATION_CLICK",

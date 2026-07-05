@@ -230,7 +230,7 @@ export default function FriendsFeed({ targetDrinkId }) {
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
                 <h3 style={{ color: '#fbb124', marginBottom: '0.5rem' }}>No Friends Yet</h3>
                 <p style={{ color: '#888', fontSize: '0.9rem' }}>
-                    Add some drinking buddies to see their shots here!
+                    Add some buddies to see their activity here!
                 </p>
             </div>
         );
@@ -242,7 +242,7 @@ export default function FriendsFeed({ targetDrinkId }) {
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🍻</div>
                 <h3 style={{ color: '#fbb124', marginBottom: '0.5rem' }}>No Shots Yet</h3>
                 <p style={{ color: '#888', fontSize: '0.9rem' }}>
-                    Your friends haven't logged any drinks yet. Be the first!
+                    Your friends haven't logged anything yet.
                 </p>
             </div>
         );
@@ -258,7 +258,7 @@ export default function FriendsFeed({ targetDrinkId }) {
                 alignItems: 'center',
                 gap: '8px'
             }}>
-                🦌 Crew Activity
+                🍻 Crew Activity
             </h2>
 
             {drinks.map(drink => (
